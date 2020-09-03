@@ -7,8 +7,10 @@ import pywinauto.keyboard as keyboard
 EXE = 'League of Legends.exe'
 LEAGUE_PATH = f'C:\\Riot Games\\League of Legends\\Game\\{EXE}'
 
-keys = {100: ['1', '2', '3', '4', '5'],
-        200: ['a', 'z', 'e', 'r', 't']}
+keys = {
+    100: ['1', '2', '3', '4', '5'],
+    200: ['a', 'z', 'e', 'r', 't']
+}
 
 
 def select_and_record(team, role_index):
@@ -47,10 +49,11 @@ def maximize_game():
 
 
 def start_recording():
+    print('[Input Sender] - Start Recording')
     keyboard.send_keys('{F10 down}{F10 up}')
 
 
 def close_game():
-    close_command = f"TASKKILL /F /IM {EXE}"
+    close_command = f'TASKKILL /F /IM \"{EXE}\"'
     print(close_command)
     subprocess.Popen(close_command, shell=True)
