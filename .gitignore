@@ -2,5 +2,7 @@ venv
 .idea
 client_secret.json
 test.py
-credentials.storage
+credential_sample.json
 .env
+metadata.json
+developer_key

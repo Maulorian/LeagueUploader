@@ -1,68 +1,83 @@
+import json
 import os
-from simple_youtube_api.Channel import Channel
-from simple_youtube_api.LocalVideo import LocalVideo
 
-VIDEOS_PATH = 'D:/LeagueReplays/'
-# API_URL = 'https://script.google.com/macros/s/AKfycbw9n8NM_qDmyuVyZZxt0w7Ih-W3DTxLDuxTaOl-VW5XPHqnEqPj/exec'
-BASE_TAGS = ["league of legends", "lol"]
+from googleapiclient.discovery import build
+from oauth2client import client  # Added
+from oauth2client import tools  # Added
+from oauth2client.client import Storage
+from oauth2client.file import Storage  # Added
+from youtube_uploader_selenium import YouTubeUploader
+
+VIDEOS_PATH = 'D:\\LeagueReplays\\'
+METADATA_PATH = 'metadata.json'
+api_service_name = "youtube"
+api_version = "v3"
+client_secrets_file = "client_secret.json"
+scopes = ["https://www.googleapis.com/auth/youtube.force-ssl"]
+
+PRIVACY = "private"
+BASE_TAGS = ["league of legends", "lol", "replays", "matchups", "challenger"]
 
 
-def upload_video(title, description):
+def upload_video():
+    print('[UPLOAD MANAGER] - Upload Video')
+
     videos = os.listdir(VIDEOS_PATH)
     videos.reverse()
     video_name = videos[0]
-    video_path = f'{VIDEOS_PATH}\\{video_name}'
-    print(f'Uploading: video_path={video_name}, size={os.path.getsize(video_path) / 1000000}mb')
+    video_path = f'{VIDEOS_PATH}{video_name}'
+    print(f'Uploading: video_path={video_name}, size={os.path.getsize(video_path)}kb')
+    metadata = {
+        'title': "title",
+        'description': ""
+    }
+    with open(METADATA_PATH, 'w') as file:
+        file.write(json.dumps(metadata))
 
-    # loggin into the channel
-    channel = Channel()
-    channel.login("client_secret.json", "credentials.storage")
+    uploader = YouTubeUploader(video_path, METADATA_PATH)
+    was_video_uploaded, video_id = uploader.upload()
+    print('[UPLOAD MANAGER] - Video Uploaded')
 
-    # setting up the video that is going to be uploaded
-    video = LocalVideo(file_path=video_path)
+    return video_id
 
-    # # setting snippet
-    # video.set_title(title)
-    # video.set_description(description)
-    # video.set_tags(BASE_TAGS + ["irelia"])
-    # video.set_category("gaming")
-    # video.set_default_language("en-US")
-    #
-    # # setting status
-    # video.set_embeddable(True)
-    # video.set_license("creativeCommon")
-    # video.set_privacy_status("private")
-    # video.set_public_stats_viewable(True)
-    # # setting thumbnail
-    # # video.set_thumbnail_path('test_thumb.png')
-    #
-    # # uploading video and printing the results
-    # video = channel.upload_video(video)
-    # print(video.id)
-    # print(video)
-    #
-    # # liking video
-    # video.like()
-    # setting snippet
-    video.set_title("My Title")
-    video.set_description("This is a description")
-    video.set_tags(["this", "tag"])
-    video.set_category("gaming")
-    video.set_default_language("en-US")
 
-    # setting status
-    video.set_embeddable(True)
-    video.set_license("creativeCommon")
-    video.set_privacy_status("private")
-    video.set_public_stats_viewable(True)
+def update_video(video_id, metadata):
+    print('[UPLOAD MANAGER] - Updating Video')
 
-    # setting thumbnail
-    # video.set_thumbnail_path('test_thumb.png')
+    title = metadata['title']
+    description = metadata['description']
+    tags = metadata['tags']
 
-    # uploading video and printing the results
-    video = channel.upload_video(video)
-    print(video.id)
-    print(video)
+    os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
+    youtube = get_authenticated_service()
 
-    # liking video
-    video.like()
+    request = youtube.videos().update(
+        part="snippet,status",
+        body={
+            "id": video_id,
+            "snippet": {
+                "defaultLanguage": "en",
+                "description": description,
+                "tags": BASE_TAGS + tags,
+                "title": title,
+                "categoryId": "20"
+            },
+            "status": {
+                "privacyStatus": PRIVACY,
+                "madeForKids": True
+            }
+        }
+    )
+    request.execute()
+    print('[UPLOAD MANAGER] - Video Updated')
+
+
+def get_authenticated_service():  # Modified
+    credential_path = os.path.join('./', 'credential_sample.json')
+    store = Storage(credential_path)
+    credentials = store.get()
+    print(credentials is not None)
+    if not credentials or credentials.invalid:
+        flow = client.flow_from_clientsecrets(client_secrets_file, scopes)
+        credentials = tools.run_flow(flow, store)
+    return build(api_service_name, api_version, credentials=credentials, cache_discovery=False)

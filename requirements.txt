@@ -6,9 +6,9 @@ chardet==3.0.4
 comtypes==1.1.7
 datapipelines==1.0.7
 decorator==4.4.2
-google-api-core==1.22.1
+google-api-core==1.22.2
 google-api-python-client==1.11.0
-google-auth==1.21.0
+google-auth==1.21.1
 google-auth-httplib2==0.0.4
 googleapis-common-protos==1.52.0
 httplib2==0.18.1
@@ -38,3 +38,4 @@ urllib3==1.25.10
 python-dotenv~=0.14.0
 beautifulsoup4~=4.9.1
 Unidecode~=1.1.1
+bs4~=0.0.1

@@ -2,7 +2,8 @@ import opgg_manager
 import spectator
 import upload_manager
 
-# spectator.spectate('Viggo')
-upload_manager.upload_video("title", "description")
-# challenger = opgg_manager.get_top_challenger()
-# spectator.spectate(challenger):
+# spectator.spectate('ArribaSBuyakote')
+
+challenger = opgg_manager.get_challenger_player(from_ladder=False)
+if challenger:
+    spectator.spectate(challenger)

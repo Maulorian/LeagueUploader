@@ -27,11 +27,12 @@ def game_launched():
 
 
 def is_game_paused():
-    print('[REPLAY-API] - Checking Game State')
     port = get_league_port()
     r = requests.get(f'https://127.0.0.1:{port}/replay/playback', verify=False)
+    paused = r.json()['paused']
+    print(f'[REPLAY-API] - Checking Game State: [paused={paused}]')
     print(r.json())
-    return r.json()['paused']
+    return paused
 
 
 def enable_recording_settings():
@@ -44,7 +45,6 @@ def enable_recording_settings():
     port = get_league_port()
 
     requests.post(f'https://127.0.0.1:{port}/replay/render', verify=False, json=render)
-    # print(r.text)
 
 
 def disable_recording_settings():
@@ -56,30 +56,28 @@ def disable_recording_settings():
     }
     port = get_league_port()
     r = requests.post(f'https://127.0.0.1:{port}/replay/render', verify=False, json=render)
-# def check_render():
-#     r = requests.get('https://127.0.0.1:2999/replay/render', verify=False)
-#     print(r.text)
-#
-#
-# def record_game():
-#     recording = {
-#         "codec": "webm",
-#         "currentTime": 0,
-#         "endTime": -1.0,
-#         "enforceFrameRate": False,
-#         "framesPerSecond": 60,
-#         "height": 720,
-#         "lossless": False,
-#         "path": "C:/Users/Alex/Documents/League of Legends/Highlights/test.webm",
-#         "recording": True,
-#         "replaySpeed": 1.0,
-#         "startTime": -1.0,
-#         "width": 1344
-#     }
-#     r = requests.post('https://127.0.0.1:2999/replay/recording', verify=False, json=recording)
-#     print(r.text)
+
+
 def get_current_game_time():
-    print('[REPLAY-API] - Get Current Game Time')
     port = get_league_port()
     r = requests.get(f'https://127.0.0.1:{port}/replay/playback', verify=False)
-    return r.json()['time']
+    t = r.json()['time']
+    print(f'[REPLAY-API] - Getting Current Game Time: {t}')
+    return t
+
+
+def get_game_info():
+    port = get_league_port()
+    r = requests.get(f'https://127.0.0.1:{port}/replay/playback', verify=False)
+    print(r.json())
+    return r.json()
+
+
+def pause_game():
+    port = get_league_port()
+    data = {
+        'paused': True
+    }
+    r = requests.post(f'https://127.0.0.1:{port}/replay/playback', json=data, verify=False)
+    print(r.json())
+    return r.json()
