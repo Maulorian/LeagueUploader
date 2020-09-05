@@ -1,9 +1,16 @@
+import time
+
 import opgg_manager
 import spectator
 import upload_manager
 
-# spectator.spectate('ArribaSBuyakote')
+WAITING_TIME = 10
 
-challenger = opgg_manager.get_challenger_player(from_ladder=False)
-if challenger:
-    spectator.spectate(challenger)
+running = True
+while running:
+    challenger = spectator.get_challenger_player(from_ladder=False)
+    if challenger:
+        spectator.spectate(challenger)
+    else:
+        print(f'Nothing found, waiting {WAITING_TIME}s')
+        time.sleep(WAITING_TIME)

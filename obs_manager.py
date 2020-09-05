@@ -13,7 +13,7 @@ def start():
     subprocess.Popen(start_recording_command, shell=True, stdout=subprocess.DEVNULL)
 
 
-def close():
+def close_obs():
     close_command = f"TASKKILL /F /IM obs64.exe"
     print(f'[OBS] - Closing')
     # print(close_command)

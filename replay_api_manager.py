@@ -30,21 +30,28 @@ def is_game_paused():
     port = get_league_port()
     r = requests.get(f'https://127.0.0.1:{port}/replay/playback', verify=False)
     paused = r.json()['paused']
-    print(f'[REPLAY-API] - Checking Game State: [paused={paused}]')
-    print(r.json())
+    print(f'[REPLAY-API] - Checking Game State: {{paused={paused}}}')
     return paused
 
 
 def enable_recording_settings():
-    print('[REPLAY-API] - Enabling Recording Settings')
-    render = {
-        "interfaceScoreboard": True,
-        "interfaceTimeline": False,
-        "interfaceChat": False,
-    }
-    port = get_league_port()
+    retry = 3
+    while retry > 0:
+        retry -= 1
+        try:
+            print(f'[REPLAY-API] - Enabling Recording Settings {{retry={retry}}}')
+            render = {
+                "interfaceScoreboard": True,
+                "interfaceTimeline": False,
+                "interfaceChat": False,
+            }
+            port = get_league_port()
 
-    requests.post(f'https://127.0.0.1:{port}/replay/render', verify=False, json=render)
+            requests.post(f'https://127.0.0.1:{port}/replay/render', verify=False, json=render)
+            return
+        except requests.exceptions.ConnectionError:
+            time.sleep(1)
+
 
 
 def disable_recording_settings():
@@ -66,9 +73,9 @@ def get_current_game_time():
     return t
 
 
-def get_game_info():
+def get_game_render_data():
     port = get_league_port()
-    r = requests.get(f'https://127.0.0.1:{port}/replay/playback', verify=False)
+    r = requests.get(f'https://127.0.0.1:{port}/replay/render', verify=False)
     print(r.json())
     return r.json()
 
