@@ -2,7 +2,7 @@ from python import opgg_manager
 
 
 def get_description(match_info):
-    players = match_info.get('players')
+    players_data = match_info.get('players_data')
     # player_champion = match_info.get('player_champion')
     # role = match_info.get('role')
     # summoner_name = match_info.get('summoner_name')
@@ -12,7 +12,7 @@ def get_description(match_info):
     # league_points = match_info.get('league_points'),
     # version = match_info.get('version')
     description = 'Players opgg\'s:\n'
-    for player_name, player_data in players.items():
-        description += f'{player_name} {player_data.get("tier")} {player_data.get("league_points")} LP on {player_data.get("champion")} : {opgg_manager.PLAYER_PAGE}{player_name}\n'
+    for player_name, player_data in players_data.items():
+        description += f'{player_name} {player_data.get("rank")} on {player_data.get("champion")} : {opgg_manager.PLAYER_PAGE}{player_name}\n'
     print(f'[{__name__.upper()}] - Description: {description}')
     return description

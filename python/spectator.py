@@ -180,6 +180,14 @@ def handle_postgame(match_info):
     upload_manager.add_video_to_queue(metadata)
 
 
+def get_players_data(summoner_name):
+    players = porofessor_manager.get_players_data(summoner_name)
+    data = opgg_manager.get_players_data(summoner_name)
+    players_data = {}
+    for player_name in players:
+        players_data[player_name] = data[player_name]
+    return players_data
+
 def spectate(summoner_name):
     obs_manager.start()
 
@@ -190,39 +198,37 @@ def spectate(summoner_name):
     match_id = match.id
     # participants = match.participants
 
-    players = porofessor_manager.get_players_data(summoner_name)
 
-    player_data = players[summoner_name]
-    player_position = list(players.keys()).index(summoner_name)
+    players_data = get_players_data(summoner_name)
+    player_data = players_data[summoner_name]
+    player_position = list(players_data.keys()).index(summoner_name)
     player_champion = player_data['champion']
 
     enemy_position = (player_position + 5) % 10
-    enemy_summoner_name = list(players.keys())[enemy_position]
-    enemy_champion = players[enemy_summoner_name].get('champion')
+    enemy_summoner_name = list(players_data.keys())[enemy_position]
+    enemy_champion = players_data[enemy_summoner_name].get('champion')
 
     print(f'enemy_champion: {enemy_champion}')
     role = ROLE_INDEXES[player_position % 5]
-    tier = player_data.get('tier')
-    league_points = player_data.get('lp')
+    rank = player_data.get('rank')
 
     version = get_current_game_version()
     champion_region_value = CURRENT_REGION
 
     match_info = {
-        'players': players,
+        'players_data': players_data,
         'player_champion': player_champion,
         'role': role,
         'summoner_name': summoner_name,
         'enemy_champion': enemy_champion,
         'champion_region_value': champion_region_value,
-        'tier': tier,
-        'league_points': league_points,
+        'rank': rank,
         'version': version
     }
     title = get_title(match_info)
     match_info['title'] = title
     print(f'[SPECTATOR] - Spectating {title}')
 
-    handle_game(match_id, player_position)
-    handle_postgame(match_info)
+    # handle_game(match_id, player_position)
+    # handle_postgame(match_info)
 

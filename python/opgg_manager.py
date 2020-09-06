@@ -44,7 +44,40 @@ def extract_names(soup):
     challengers = list(map(lambda challenger: unquote(challenger), challengers))
     return challengers
 
+def get_players_data(name):
+    full_url = SPECTATE_PLAYER_PAGE + name
 
+    r = requests.get(full_url)
+    html = r.text
+    with io.open(f'{__name__.upper()}.html', "w", encoding="utf-8") as f:
+        f.write(html)
+    soup = BeautifulSoup(html, "html.parser")
+
+    challengers = extract_players_data(soup)
+    print(f'[{__name__.upper()}] - Players Order: {challengers}')
+
+    return challengers
+
+def extract_players_data(soup):
+    players = {}
+    players_html = soup.find_all("div", {'class': 'Content'})
+    players_html = soup.find_all("tr")
+    players_html = list(filter(lambda tr: tr.get('id') is not None and 'SpectateBigListRow' in tr.get('id'), players_html))
+    for i in range(10):
+        with open(f'player.html', 'w') as f:
+            f.write(str(players_html[i]))
+        player_html = players_html[i]
+        player_data = {}
+
+        player_data['champion'] = player_html.find('a').get('title')
+
+        player_name = player_html.find('a', {'class': "SummonerName"}).text.strip()
+        player_ranking_information = player_html.find('div', {'class': 'TierRank'}).text.strip()
+        player_data['rank'] = player_ranking_information
+
+        players[player_name] = player_data
+
+    return players
 # def get_current_match_duration(summoner):
 #     name = summoner.name
 #     full_url = PLAYER_PAGE + name

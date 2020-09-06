@@ -29,33 +29,34 @@ def get_players_data(name):
         f.write(html)
     soup = BeautifulSoup(html, "html.parser")
 
-    challengers = extract_players_data(soup)
+    challengers = extract_players_order(soup)
     print(f'[{__name__.upper()}] - Players Order: {challengers}')
 
     return challengers
 
 
-def extract_players_data(soup):
-    players = {}
+def extract_players_order(soup):
+    players = []
     players_name = soup.findAll("div", {'class': 'card card-5'})
 
     for i in range(10):
-
-        player_name = players_name[i].attrs['data-summonername'].strip()
-        with open(f'{player_name}.html', 'w') as f:
+        with open(f'player.html', 'w') as f:
             f.write(str(players_name[i]))
-        player_data = {}
-        player_data['champion'] = players_name[i].find('img')['title']
-        player_ranking_information = players_name[i].find('div', {'class': 'cardBody'})
-        player_ranking_information = player_ranking_information.find('div', {'class': 'box rankingsBox canExpand'})
-        player_ranking_information = player_ranking_information.find('div', {'class': 'imgFlex'})
-        player_ranking_information = player_ranking_information.find('div', {'class': 'txt'})
-        player_ranking_information = player_ranking_information.find('div', {'class': 'title'})
-        player_data['tier'] = player_ranking_information.find(text=True, recursive=False).strip()
-        league_points = player_ranking_information.find('span', {'class': 'subtitle'}).text.strip()
-        player_data['lp'] = league_points.split()[0]
+        player_name = players_name[i].attrs['data-summonername'].strip()
 
-        players[player_name] = player_data
+
+        # player_data = {}
+        # player_data['champion'] = players_name[i].find('img')['title']
+        # player_ranking_information = players_name[i].find('div', {'class': 'cardBody'})
+        # player_ranking_information = player_ranking_information.find('div', {'class': 'box rankingsBox canExpand'})
+        # player_ranking_information = player_ranking_information.find('div', {'class': 'imgFlex'})
+        # player_ranking_information = player_ranking_information.find('div', {'class': 'txt'})
+        # player_ranking_information = player_ranking_information.find('div', {'class': 'title'})
+        # player_data['tier'] = player_ranking_information.find(text=True, recursive=False).strip()
+        # league_points = player_ranking_information.find('span', {'class': 'subtitle'}).text.strip()
+        # player_data['lp'] = league_points.split()[0]
+        players.append(player_name)
+        # players[player_name] = player_data
 
 
     return players
