@@ -30,7 +30,7 @@ def is_game_paused():
     port = get_league_port()
     r = requests.get(f'https://127.0.0.1:{port}/replay/playback', verify=False)
     paused = r.json()['paused']
-    print(f'[REPLAY-API] - Checking Game State: {{paused={paused}}}')
+    print(f'[REPLAY-API] - Checking if Game is paused : {{paused={paused}}}')
     return paused
 
 

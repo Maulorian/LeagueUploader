@@ -1,4 +1,3 @@
-import json
 import os
 import subprocess
 import time
@@ -8,45 +7,54 @@ import datapipelines
 import requests
 from cassiopeia import GameType, Queue
 
-import league_manager
-import obs_manager
-import opgg_manager
-import porofessor_manager
-import replay_api_manager
-import upload_manager
+from python import opgg_manager, porofessor_manager, obs_manager, upload_manager, league_manager, description_manager, \
+    replay_api_manager, tags_manager
 
 from dotenv import load_dotenv
+
+from python.title_manager import get_title
+
 load_dotenv()
 
 WAIT_TIME = 1
-SURREND_TIME = 15*60
+SURREND_TIME = 15 * 60
 ROLE_INDEXES = ['Top', 'Jungle', 'Mid', 'Bot', 'Support']
+CURRENT_REGION = 'EUW'
 cass.set_riot_api_key(os.getenv("RIOT_KEY"))
-cass.set_default_region("EUW")
+cass.set_default_region(CURRENT_REGION)
+
 
 def get_challenger_in_ranked_match(challengers):
     print(f'[OPGG MANAGER] - Getting Player in Ranked Game')
 
     for summoner_name in challengers:
+        print(f'[OPGG MANAGER] - Checking if "{summoner_name}" is in game')
         summoner = cass.get_summoner(name=summoner_name)
         match = get_current_match(summoner)
-        duration = porofessor_manager.get_current_match_duration(summoner)
-
-        time.sleep(0.2)
         if match is None:
+            continue
+        try:
+            duration = porofessor_manager.get_current_match_duration(summoner.name)
+        except porofessor_manager.MatchNotStartedException:
+            return summoner_name
+
+        time.sleep(0.5)
+        if duration is None:
             continue
         if match.type != GameType.matched:
             continue
         print(f'[OPGG MANAGER] - Duration={duration}')
-        if duration is not None:
-            just_started = duration.seconds-2*60 < 0
-            if not just_started:
-                continue
+
+        just_started = duration.seconds - 2 * 60 < 0
+        if not just_started:
+            continue
 
         if match.queue != Queue.ranked_solo_fives:
+            print(f'[OPGG MANAGER] - Match Queue is not valid: {match.queue.value}')
             continue
 
         return summoner_name
+
 
 def get_challenger_player(from_ladder=False):
     print(f'[OPGG MANAGER] - Getting Challenger Player {{from_ladder={from_ladder}}}')
@@ -110,7 +118,7 @@ def wait_for_game_start():
         break
 
 
-def get_game_current_version():
+def get_current_game_version():
     r = requests.get('https://raw.githubusercontent.com/CommunityDragon/Data/master/patches.json')
     version = r.json()['patches'][-1]['name']
     return version
@@ -130,40 +138,13 @@ def find_and_launch_game(match_id):
 
     replay_command = r.text
 
-    with open('replay.bat', 'w') as f:
+    with open('../replay.bat', 'w') as f:
         f.write(replay_command)
 
     subprocess.call(['replay.bat'], stdout=subprocess.DEVNULL)
 
 
-def spectate(summoner_name):
-    obs_manager.start()
-
-    summoner = cass.get_summoner(name=summoner_name)
-    match = get_current_match(summoner)
-    match_id = match.id
-    participants = match.participants
-
-    player_champion = get_summoner_champion(participants, summoner_name)
-    players = porofessor_manager.get_player_positions(summoner)
-    player_position = players.index(summoner_name)
-
-    enemy_position = (player_position + 5) % 10
-    enemy_summoner_name = players[enemy_position]
-    enemy_champion = get_summoner_champion(participants, enemy_summoner_name)
-    print(f'enemy_champion: {enemy_champion}')
-    role = ROLE_INDEXES[player_position % 5]
-    ranked_stats = summoner.league_entries.fives
-    tier = ranked_stats.tier
-    league_points = ranked_stats.league_points
-
-    version = get_game_current_version()
-    champion_name = player_champion.name
-    enemy_champion_name = enemy_champion.name
-    champion_region_value = player_champion.region.value
-    title = f'{champion_name} {role} "{summoner_name}" vs {enemy_champion_name} - {champion_region_value} {tier} {league_points} LP Patch {version}'
-    print(f'[SPECTATOR] - Spectating {title}')
-
+def handle_game(match_id, player_position):
     find_and_launch_game(match_id)
     wait_for_game_launched()
 
@@ -176,18 +157,72 @@ def spectate(summoner_name):
     league_manager.select_summoner(player_position)
     wait_seconds(WAIT_TIME)
 
-    league_manager.start_recording()
+    league_manager.toggle_recording()
 
     wait_finish()
+
+    league_manager.toggle_recording()
 
     obs_manager.close_obs()
     league_manager.close_game()
 
-    description = ''
+
+def handle_postgame(match_info):
+    description = description_manager.get_description(match_info)
+    tags = tags_manager.get_tags(match_info)
+    title = match_info.get('title')
     metadata = {
         'title': title,
         'description': description,
-        'tags': [champion_name, enemy_champion_name],
+        'tags': tags,
     }
-
+    time.sleep(WAIT_TIME * 5)
     upload_manager.add_video_to_queue(metadata)
+
+
+def spectate(summoner_name):
+    obs_manager.start()
+
+    summoner = cass.get_summoner(name=summoner_name)
+    match = get_current_match(summoner)
+    if match is None:
+        return
+    match_id = match.id
+    # participants = match.participants
+
+    players = porofessor_manager.get_players_data(summoner_name)
+
+    player_data = players[summoner_name]
+    player_position = list(players.keys()).index(summoner_name)
+    player_champion = player_data['champion']
+
+    enemy_position = (player_position + 5) % 10
+    enemy_summoner_name = list(players.keys())[enemy_position]
+    enemy_champion = players[enemy_summoner_name].get('champion')
+
+    print(f'enemy_champion: {enemy_champion}')
+    role = ROLE_INDEXES[player_position % 5]
+    tier = player_data.get('tier')
+    league_points = player_data.get('lp')
+
+    version = get_current_game_version()
+    champion_region_value = CURRENT_REGION
+
+    match_info = {
+        'players': players,
+        'player_champion': player_champion,
+        'role': role,
+        'summoner_name': summoner_name,
+        'enemy_champion': enemy_champion,
+        'champion_region_value': champion_region_value,
+        'tier': tier,
+        'league_points': league_points,
+        'version': version
+    }
+    title = get_title(match_info)
+    match_info['title'] = title
+    print(f'[SPECTATOR] - Spectating {title}')
+
+    handle_game(match_id, player_position)
+    handle_postgame(match_info)
+

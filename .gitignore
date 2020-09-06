@@ -1,8 +1,15 @@
 venv
 .idea
 client_secret.json
-test.py
+python/test.py
 credential_sample.json
 .env
 metadata.json
 developer_key
+replay.bat
+to_upload.json
+youtube.com.pkl
+geckodriver.exe
+geckodriver.log
+POROFESSOR_MANAGER.html
+python/queue_consumer.py

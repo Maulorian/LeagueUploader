@@ -1,8 +1,6 @@
 import time
 
-import opgg_manager
-import spectator
-import upload_manager
+from python import spectator
 
 WAITING_TIME = 10
 

@@ -7,39 +7,50 @@ from oauth2client import tools  # Added
 from oauth2client.client import Storage
 from oauth2client.file import Storage  # Added
 from youtube_uploader_selenium import YouTubeUploader
+import re
 
 VIDEOS_PATH = 'D:\\LeagueReplays\\'
-METADATA_PATH = 'metadata.json'
+METADATA_PATH = '../metadata.json'
 api_service_name = "youtube"
 api_version = "v3"
-client_secrets_file = "client_secret.json"
+client_secrets_file = "../client_secret.json"
 scopes = ["https://www.googleapis.com/auth/youtube.force-ssl"]
 
 PRIVACY = "private"
-BASE_TAGS = ["league of legends", "lol", "replays", "matchups", "challenger"]
+BASE_TAGS = ["lol challenger matchups", "league challenger matchups", "lol challenger replays", "league challenger replays"]
 
 
-def add_completed_tag(video_path):
+def camel_to_snake(name):
+    name = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
+    return re.sub('([a-z0-9])([A-Z])', r'\1_\2', name).lower()
+
+
+def rename_video_path(video_path, title):
     parts = os.path.splitext(video_path)
-    name = parts[0]
     extension = parts[1]
-    return name + '_completed' + extension
+    reformated_title = camel_to_snake(title.replace(' ', ''))
+    return reformated_title + extension
 
 
 def add_video_to_queue(metadata):
-    with open('to_upload.json', 'r') as to_upload_json:
-        to_upload = json.load(to_upload_json)
-        videos = os.listdir(VIDEOS_PATH)
-        videos.reverse()
-        video_name = videos[0]
-        video_path = f'{VIDEOS_PATH}{video_name}'
+    print(f'[UPLOAD MANAGER] - Adding Video To Queue')
 
-        new_video_path = add_completed_tag(video_path)
+    with open('../to_upload.json', 'r') as to_upload_json:
+        to_upload = json.load(to_upload_json)
+        from pathlib import Path
+
+        video_paths = sorted(Path(VIDEOS_PATH).iterdir(), key=os.path.getmtime)
+
+        video_path = video_paths[-1]
+        video_name = os.path.basename(video_path)
+        # video_path = f'{VIDEOS_PATH}{video_name}'
+        new_video_name = rename_video_path(video_name, metadata.get('title'))
+        new_video_path = f'{VIDEOS_PATH}{new_video_name}'
         os.rename(video_path, new_video_path)
 
-        metadata['path'] = new_video_path
+        metadata['path'] = str(new_video_path)
         to_upload.append(metadata)
-    with open('to_upload.json', 'w') as to_upload_json:
+    with open('../to_upload.json', 'w') as to_upload_json:
         json.dump(to_upload, to_upload_json, indent=2)
 
 
@@ -50,7 +61,7 @@ def upload_video(video_metadata):
 
 def empty_queue():
     uploaded = []
-    with open('to_upload.json', 'r') as to_upload_json:
+    with open('../to_upload.json', 'r') as to_upload_json:
         to_upload = json.load(to_upload_json)
         for video_metadata in to_upload:
             upload_video(video_metadata)
@@ -58,7 +69,7 @@ def empty_queue():
 
         to_upload[:] = [metadata for metadata in to_upload if metadata.get('path') not in uploaded]
 
-    with open('to_upload.json', 'w') as to_upload_json:
+    with open('../to_upload.json', 'w') as to_upload_json:
         json.dump(to_upload, to_upload_json, indent=2)
 
 
@@ -96,13 +107,12 @@ def update_video(video_id, metadata):
             "snippet": {
                 "defaultLanguage": "en",
                 "description": description,
-                "tags": BASE_TAGS + tags,
+                "tags": tags + BASE_TAGS,
                 "title": title,
                 "categoryId": "20"
             },
             "status": {
-                "privacyStatus": PRIVACY,
-                "madeForKids": True
+                "privacyStatus": PRIVACY
             }
         }
     )
@@ -111,7 +121,7 @@ def update_video(video_id, metadata):
 
 
 def get_authenticated_service():  # Modified
-    credential_path = os.path.join('./', 'credential_sample.json')
+    credential_path = os.path.join('../', 'credential_sample.json')
     store = Storage(credential_path)
     credentials = store.get()
     if not credentials or credentials.invalid:
