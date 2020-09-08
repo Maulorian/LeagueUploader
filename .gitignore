@@ -1,8 +1,8 @@
 venv
 .idea
 client_secret.json
-python/test.py
-credential_sample.json
+test.py
+python/credential_sample.json
 .env
 metadata.json
 developer_key
@@ -12,4 +12,4 @@ youtube.com.pkl
 geckodriver.exe
 geckodriver.log
 POROFESSOR_MANAGER.html
-python/queue_consumer.py
+queue_consumer.py

@@ -1,4 +1,4 @@
-from python import opgg_manager
+from opgg_extractor import OPGGExtractor
 
 
 def get_description(match_info):
@@ -11,8 +11,10 @@ def get_description(match_info):
     # tier = match_info.get('tier')
     # league_points = match_info.get('league_points'),
     # version = match_info.get('version')
-    description = 'Players opgg\'s:\n'
+    description = 'Players opgg\'s:\n\n'
+    opgg_extractor = OPGGExtractor(match_info['region'])
+    player_page_url = opgg_extractor.get_player_page()
     for player_name, player_data in players_data.items():
-        description += f'{player_name} {player_data.get("rank")} on {player_data.get("champion")} : {opgg_manager.PLAYER_PAGE}{player_name}\n'
+        description += f'{player_data.get("champion")} {player_data.get("rank")} : {player_page_url}{player_name.replace(" ", "+")}\n'
     print(f'[{__name__.upper()}] - Description: {description}')
     return description

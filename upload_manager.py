@@ -10,10 +10,10 @@ from youtube_uploader_selenium import YouTubeUploader
 import re
 
 VIDEOS_PATH = 'D:\\LeagueReplays\\'
-METADATA_PATH = '../metadata.json'
+METADATA_PATH = 'metadata.json'
 api_service_name = "youtube"
 api_version = "v3"
-client_secrets_file = "../client_secret.json"
+client_secrets_file = "client_secret.json"
 scopes = ["https://www.googleapis.com/auth/youtube.force-ssl"]
 
 PRIVACY = "private"
@@ -35,22 +35,30 @@ def rename_video_path(video_path, title):
 def add_video_to_queue(metadata):
     print(f'[UPLOAD MANAGER] - Adding Video To Queue')
 
-    with open('../to_upload.json', 'r') as to_upload_json:
+    with open('to_upload.json', 'r') as to_upload_json:
         to_upload = json.load(to_upload_json)
         from pathlib import Path
 
         video_paths = sorted(Path(VIDEOS_PATH).iterdir(), key=os.path.getmtime)
 
         video_path = video_paths[-1]
-        video_name = os.path.basename(video_path)
-        # video_path = f'{VIDEOS_PATH}{video_name}'
-        new_video_name = rename_video_path(video_name, metadata.get('title'))
-        new_video_path = f'{VIDEOS_PATH}{new_video_name}'
-        os.rename(video_path, new_video_path)
 
-        metadata['path'] = str(new_video_path)
+        metadata['path'] = str(video_path)
         to_upload.append(metadata)
-    with open('../to_upload.json', 'w') as to_upload_json:
+    with open('to_upload.json', 'w') as to_upload_json:
+        json.dump(to_upload, to_upload_json, indent=2)
+
+    with open('to_upload_backup.json', 'r') as to_upload_json:
+        to_upload = json.load(to_upload_json)
+        from pathlib import Path
+
+        video_paths = sorted(Path(VIDEOS_PATH).iterdir(), key=os.path.getmtime)
+
+        video_path = video_paths[-1]
+
+        metadata['path'] = str(video_path)
+        to_upload.append(metadata)
+    with open('to_upload_backup.json', 'w') as to_upload_json:
         json.dump(to_upload, to_upload_json, indent=2)
 
 
@@ -60,17 +68,19 @@ def upload_video(video_metadata):
 
 
 def empty_queue():
-    uploaded = []
-    with open('../to_upload.json', 'r') as to_upload_json:
-        to_upload = json.load(to_upload_json)
-        for video_metadata in to_upload:
-            upload_video(video_metadata)
-            uploaded.append(video_metadata['path'])
+    print('Emptying queue')
+    while True:
+        with open('to_upload.json', 'r') as to_upload_json:
+            to_upload = json.load(to_upload_json)
+            if len(to_upload) == 0:
+                break
 
-        to_upload[:] = [metadata for metadata in to_upload if metadata.get('path') not in uploaded]
+            video_metadata = to_upload.pop(0)
 
-    with open('../to_upload.json', 'w') as to_upload_json:
-        json.dump(to_upload, to_upload_json, indent=2)
+        with open('to_upload.json', 'w') as to_upload_json:
+            json.dump(to_upload, to_upload_json, indent=2)
+
+        upload_video(video_metadata)
 
 
 def upload_default_video(video_path):
@@ -117,11 +127,16 @@ def update_video(video_id, metadata):
         }
     )
     request.execute()
+    request = youtube.videos().rate(
+        id=video_id,
+        rating="like"
+    )
+    request.execute()
     print('[UPLOAD MANAGER] - Video Updated')
 
 
 def get_authenticated_service():  # Modified
-    credential_path = os.path.join('../', 'credential_sample.json')
+    credential_path = os.path.join('/', 'credential_sample.json')
     store = Storage(credential_path)
     credentials = store.get()
     if not credentials or credentials.invalid:

@@ -8,12 +8,7 @@ import pywinauto.keyboard as keyboard
 EXE = 'League of Legends.exe'
 LEAGUE_PATH = f'C:\\Riot Games\\League of Legends\\Game\\{EXE}'
 
-KEYBINDS = ['1', '2', '3', '4', '5', 'q', 'w', 'e', 'r', 't']
-
-# def open_replay():
-#     obs_dir_path = '\"C:\\Program Files\\obs-studio\\bin\\64bit\"'
-#     start_recording_command = f'cd {obs_dir_path} & {OBS_EXE_STRING}'
-#     subprocess.Popen(start_recording_command, shell=True, stdout=subprocess.DEVNULL)
+KEYBINDS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0']
 
 
 def select_summoner(position):
