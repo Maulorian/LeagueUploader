@@ -75,6 +75,9 @@ class OPGGExtractor:
 
         players = extract_players_data(soup)
         if not len(players):
+            print(
+                f'{datetime.now()} [{__name__.upper()}] - "{player_name}" not in game.')
+
             return
 
         match_type = extract_match_type(soup)

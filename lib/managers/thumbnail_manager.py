@@ -7,5 +7,5 @@ def save_champion_splashart(champion, skin_id):
     champion = get_champion(champion)
     skins = champion.skins
     skin = next(item for item in skins if item.number == skin_id)
-    with open(f'../../splash_art.jpeg', 'wb') as f:
+    with open(f'splash_art.jpeg', 'wb') as f:
         skin.splash.save(f)

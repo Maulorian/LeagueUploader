@@ -1,15 +1,15 @@
 venv
 .idea
-tests/
+lib/tests/
 json/
 bats/
 credential_sample.json
 .env
 
 youtube.com.pkl
-geckodriver.exe
+lib/geckodriver.exe
 geckodriver.log
 POROFESSOR_MANAGER.html
-python/queue_consumer.py
+lib/queue_consumer.py
 
-splash_art.jpeg
+jpeg/splash_art.jpeg

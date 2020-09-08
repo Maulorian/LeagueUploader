@@ -1,9 +1,10 @@
 from cassiopeia import Region, Queue
 
-from opgg_extractor import OPGGExtractor
-from porofessor_manager import PorofessorExtractor
+from lib.externals_sites.opgg_extractor import OPGGExtractor
+from lib.externals_sites.porofessor_extractor import PorofessorExtractor
 
-REGIONS_TO_SEARCH = [Region.korea, Region.europe_west]
+# REGIONS_TO_SEARCH = [Region.korea, Region.europe_west]
+REGIONS_TO_SEARCH = [Region.europe_west, Region.korea]
 
 
 def get_final_players_data(porofessor_players, opgg_players_data):
@@ -11,7 +12,6 @@ def get_final_players_data(porofessor_players, opgg_players_data):
     for player_name in porofessor_players:
         players_data[player_name] = opgg_players_data[player_name]
     return players_data
-
 
 def find_ladder_player():
     already_searched_players = set()
@@ -51,6 +51,7 @@ def find_ladder_player():
                 break
 
             if opgg_match_data.get('match_type') != Queue.ranked_solo_fives:
+                print(f"Not a ranked: {opgg_match_data.get('match_type')}")
                 continue
 
             porofessor_extractor = PorofessorExtractor(region)
@@ -66,9 +67,9 @@ def find_ladder_player():
 
             print(f'[{__name__.upper()}] - Duration={duration}')
 
-            just_started = duration.seconds - 2 * 60 - 3.5*60 < 0
-            if not just_started:
-                continue
+            # just_started = duration.seconds - 2 * 60 - 3.5*60 < 0
+            # if not just_started:
+            #     continue
 
             players_data = get_final_players_data(porofessor_players, opgg_players_data)
             match_data = {'summoner_name': summoner_name, 'players_data': players_data, 'region': region}

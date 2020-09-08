@@ -1,4 +1,4 @@
-from opgg_extractor import OPGGExtractor
+from lib.externals_sites.opgg_extractor import OPGGExtractor
 
 
 def get_description(match_info):

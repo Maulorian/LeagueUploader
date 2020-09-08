@@ -1,5 +1,6 @@
 import json
 import os
+from os import listdir
 
 from PIL import Image
 from googleapiclient.discovery import build
@@ -11,18 +12,21 @@ from oauth2client.file import Storage  # Added
 from youtube_uploader_selenium import YouTubeUploader
 import re
 
-from thumbnail_manager import save_champion_splashart
+from lib.managers.thumbnail_manager import save_champion_splashart
 
 VIDEOS_PATH = 'D:\\LeagueReplays\\'
-METADATA_PATH = '../../json/metadata.json'
+METADATA_PATH = '../json/metadata.json'
 api_service_name = "youtube"
 api_version = "v3"
-client_secrets_file = "../../json/client_secret.json"
+client_secrets_file = "../json/client_secret.json"
 scopes = ["https://www.googleapis.com/auth/youtube.force-ssl"]
 
 PRIVACY_STATUS = "private"
 BASE_TAGS = ["lol challenger matchups", "league challenger matchups", "lol challenger replays",
              "league challenger replays"]
+
+TO_UPLOAD_PATH = '..\\json\\to_upload.json'
+TO_UPLOAD_BACKUP_PATH = '..\\json\\to_upload_backup.json'
 
 
 def camel_to_snake(name):
@@ -39,8 +43,7 @@ def rename_video_path(video_path, title):
 
 def add_video_to_queue(metadata):
     print(f'[UPLOAD MANAGER] - Adding Video To Queue')
-
-    with open('../../json/to_upload.json', 'r') as to_upload_json:
+    with open(TO_UPLOAD_PATH, 'r') as to_upload_json:
         to_upload = json.load(to_upload_json)
         from pathlib import Path
 
@@ -50,10 +53,10 @@ def add_video_to_queue(metadata):
 
         metadata['path'] = str(video_path)
         to_upload.append(metadata)
-    with open('../../json/to_upload.json', 'w') as to_upload_json:
+    with open(TO_UPLOAD_PATH, 'w') as to_upload_json:
         json.dump(to_upload, to_upload_json, indent=2)
 
-    with open('../../json/to_upload_backup.json', 'r') as to_upload_json:
+    with open(TO_UPLOAD_BACKUP_PATH, 'r') as to_upload_json:
         to_upload = json.load(to_upload_json)
         from pathlib import Path
 
@@ -63,7 +66,7 @@ def add_video_to_queue(metadata):
 
         metadata['path'] = str(video_path)
         to_upload.append(metadata)
-    with open('../../json/to_upload_backup.json', 'w') as to_upload_json:
+    with open(TO_UPLOAD_BACKUP_PATH, 'w') as to_upload_json:
         json.dump(to_upload, to_upload_json, indent=2)
 
 
@@ -75,17 +78,18 @@ def upload_video(video_metadata):
 def empty_queue():
     print('Emptying queue')
     while True:
-        with open('../../json/to_upload.json', 'r') as to_upload_json:
+        with open(TO_UPLOAD_PATH, 'r') as to_upload_json:
             to_upload = json.load(to_upload_json)
             if len(to_upload) == 0:
+                print('uploads are empty')
                 break
-
-            video_metadata = to_upload.pop(0)
-
-        with open('../../json/to_upload.json', 'w') as to_upload_json:
-            json.dump(to_upload, to_upload_json, indent=2)
+        video_metadata = to_upload.pop(0)
 
         upload_video(video_metadata)
+
+        with open(TO_UPLOAD_PATH, 'w') as to_upload_json:
+            json.dump(to_upload, to_upload_json, indent=2)
+
 
 
 def upload_default_video(video_path):
@@ -106,7 +110,7 @@ def upload_default_video(video_path):
 
 
 def update_video(video_id, metadata):
-    print('[UPLOAD MANAGER] - Updating Video')
+    print(f'[UPLOAD MANAGER] - Updating Video {video_id}')
     title = metadata['title']
     print(f'[UPLOAD MANAGER] - Setting title to "{title}"')
     description = metadata['description']
@@ -145,7 +149,7 @@ def update_video(video_id, metadata):
     request.execute()
     request = youtube.thumbnails().set(
         videoId=video_id,
-        media_body=MediaFileUpload('../../splash_art.jpeg')
+        media_body=MediaFileUpload('splash_art.jpeg')
     )
     print('[UPLOAD MANAGER] - Setting Thumbnail')
 
@@ -154,7 +158,7 @@ def update_video(video_id, metadata):
 
 
 def get_authenticated_service():  # Modified
-    credential_path = os.path.join('/', '../../credential_sample.json')
+    credential_path = 'credential_sample.json'
     store = Storage(credential_path)
     credentials = store.get()
     if not credentials or credentials.invalid:

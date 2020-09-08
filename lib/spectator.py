@@ -4,24 +4,22 @@ import time
 import cassiopeia as cass
 import requests
 
-import upload_manager
-import obs_manager
-from python.managers import replay_api_manager
-import league_manager
-from python.builders import description_builder, tags_builder
+from lib.externals_sites.opgg_extractor import OPGGExtractor
+from lib.managers import replay_api_manager, obs_manager, league_manager, upload_manager
+
+from lib.builders import description_builder, tags_builder
 
 from dotenv import load_dotenv
 
-from python.builders.title_builder import get_title
-from game_cfg_manager import enable_settings, disable_settings
-from opgg_extractor import OPGGExtractor
+from lib.builders.title_builder import get_title
+from lib.managers.game_cfg_manager import enable_settings, disable_settings
 
 load_dotenv()
 
 WAIT_TIME = 1
 SURREND_TIME = 15 * 60
 ROLE_INDEXES = ['Top', 'Jungle', 'Mid', 'Bot', 'Support']
-BAT_PATH = '../bats/replay.bat'
+BAT_PATH = 'replay.bat'
 
 
 def wait_finish():

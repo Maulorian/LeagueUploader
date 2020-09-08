@@ -28,8 +28,8 @@ class PorofessorExtractor:
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.77 Safari/537.36"}
         r = requests.get(full_url, headers=headers)
         html = r.text
-        with io.open(f'{__name__}.html', "w", encoding="utf-8") as f:
-            f.write(html)
+        # with io.open(f'{__name__}.html', "w", encoding="utf-8") as f:
+        #     f.write(html)
         soup = BeautifulSoup(html, "html.parser")
         match_data = {}
 
