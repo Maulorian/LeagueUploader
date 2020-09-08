@@ -1,5 +1,5 @@
 TITLE_CANVAS = '{player_champion} {role} vs {enemy_champion} - {summoner_name} {region} {rank} ' \
-               'Patch {version} '
+               'Patch {version}'
 
 
 def manual_replace(s, char, index):

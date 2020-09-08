@@ -31,7 +31,7 @@ class PorofessorExtractor:
         with io.open(f'{__name__}.html', "w", encoding="utf-8") as f:
             f.write(html)
         soup = BeautifulSoup(html, "html.parser")
-        match = {}
+        match_data = {}
 
         players = extract_players_order(soup)
         if not len(players):
@@ -40,10 +40,11 @@ class PorofessorExtractor:
 
         duration = get_current_match_duration(soup)
         # print(f'[{__name__.upper()}] - Players Order: {players}')
-        match['players'] = players
-        match['duration'] = duration
+        match_data['players'] = players
+        match_data['duration'] = duration
+        print(f'{datetime.now()} [{__name__.upper()}] - Getting player match data for "{summoner_name}": {match_data}')
 
-        return match
+        return match_data
 
 
 def get_current_match_duration(soup):

@@ -26,6 +26,15 @@ def game_launched():
     return get_league_port() is not None
 
 
+def get_player_data(champion):
+    port = get_league_port()
+    r = requests.get(f'https://127.0.0.1:{port}/liveclientdata/playerlist', verify=False)
+    champions = r.json()
+    champion = next(item for item in champions if item.get('championName') == champion)
+    print(f'[REPLAY-API] - get_player_data : {{champion={champion}}}')
+    return champion
+
+
 def is_game_paused():
     port = get_league_port()
     r = requests.get(f'https://127.0.0.1:{port}/replay/playback', verify=False)
@@ -67,15 +76,20 @@ def disable_recording_settings():
 
 def get_current_game_time():
     port = get_league_port()
-    r = requests.get(f'https://127.0.0.1:{port}/replay/playback', verify=False)
-    t = r.json()['time']
+    url = f'https://127.0.0.1:{port}/replay/playback'
+    r = requests.get(url, verify=False)
+    response_json = r.json()
+    print(f'[REPLAY-API] - Getting Current Game Time: {response_json}')
+
+    t = response_json['time']
     print(f'[REPLAY-API] - Getting Current Game Time: {t}')
     return t
 
 
 def get_game_render_data():
     port = get_league_port()
-    r = requests.get(f'https://127.0.0.1:{port}/replay/render', verify=False)
+    url = f'https://127.0.0.1:{port}/replay/render'
+    r = requests.get(url, verify=False)
     print(r.json())
     return r.json()
 

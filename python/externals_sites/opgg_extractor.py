@@ -7,7 +7,7 @@ from bs4 import BeautifulSoup
 from urllib.parse import unquote
 
 from cassiopeia import Region, Queue
-
+from datetime import datetime
 REGION_URLS = {
     Region.korea: 'www.op.gg',
     Region.europe_west: 'euw.op.gg'
@@ -36,7 +36,7 @@ class OPGGExtractor:
         region_url = REGION_URLS[self.region]
         ladder_url = SCHEMA + region_url + LADDER
         url = ladder_url if page_nb == 1 else ladder_url + PAGE + str(page_nb)
-        print(f'[{__name__.upper()}] - Getting ladder (page= {page_nb})')
+        print(f'[{__name__.upper()}] - Getting ladder in page {page_nb}')
 
         r = requests.get(url)
         html = r.text
@@ -61,7 +61,6 @@ class OPGGExtractor:
         return challengers
 
     def get_match_data(self, player_name):
-        print(f'{datetime.datetime.now()} [{__name__.upper()}] - Getting player match data for "{player_name}"')
 
         region_url = REGION_URLS[self.region]
         url = SCHEMA + region_url + SPECTATE_PLAYER_PAGE + player_name
@@ -72,7 +71,7 @@ class OPGGExtractor:
         #     f.write(html)
         soup = BeautifulSoup(html, "html.parser")
 
-        match = {}
+        match_data = {}
 
         players = extract_players_data(soup)
         if not len(players):
@@ -80,10 +79,11 @@ class OPGGExtractor:
 
         match_type = extract_match_type(soup)
         # print(f'[{__name__.upper()}] - Players Order: {players}')
-        match['players_data'] = players
-        match['match_type'] = match_type
+        match_data['players_data'] = players
+        match_data['match_type'] = match_type
+        print(f'{datetime.now()} [{__name__.upper()}] - Getting player match data for "{player_name}": {match_data}')
 
-        return match
+        return match_data
 
     def get_game_bat(self, match_id):
         region_url = REGION_URLS[self.region]
