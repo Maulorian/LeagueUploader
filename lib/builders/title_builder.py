@@ -13,7 +13,7 @@ def get_title(match_info):
     first_letter = summoner_name[0].upper()
     summoner_name = manual_replace(summoner_name, first_letter, 0)
     enemy_champion = match_info.get('enemy_champion')
-    region = match_info.get('region').value
+    region = match_info.get('region')
     rank = match_info.get('rank')
     version = match_info.get('version')
 

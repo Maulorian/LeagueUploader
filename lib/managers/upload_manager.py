@@ -1,8 +1,8 @@
 import json
+import logging
 import os
-from os import listdir
+import re
 
-from PIL import Image
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 from oauth2client import client  # Added
@@ -10,8 +10,9 @@ from oauth2client import tools  # Added
 from oauth2client.client import Storage
 from oauth2client.file import Storage  # Added
 from youtube_uploader_selenium import YouTubeUploader
-import re
 
+from lib.builders import description_builder, tags_builder
+from lib.builders.title_builder import get_title
 from lib.managers.thumbnail_manager import save_champion_splashart
 
 VIDEOS_PATH = 'D:\\LeagueReplays\\'
@@ -22,57 +23,46 @@ client_secrets_file = "../json/client_secret.json"
 scopes = ["https://www.googleapis.com/auth/youtube.force-ssl"]
 
 PRIVACY_STATUS = "private"
-BASE_TAGS = ["lol challenger matchups", "league challenger matchups", "lol challenger replays",
-             "league challenger replays"]
 
 TO_UPLOAD_PATH = '..\\json\\to_upload.json'
 TO_UPLOAD_BACKUP_PATH = '..\\json\\to_upload_backup.json'
 
 
-def camel_to_snake(name):
-    name = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
-    return re.sub('([a-z0-9])([A-Z])', r'\1_\2', name).lower()
+# def camel_to_snake(name):
+#     name = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
+#     return re.sub('([a-z0-9])([A-Z])', r'\1_\2', name).lower()
 
 
-def rename_video_path(video_path, title):
-    parts = os.path.splitext(video_path)
-    extension = parts[1]
-    reformated_title = camel_to_snake(title.replace(' ', ''))
-    return reformated_title + extension
+# def rename_video_path(video_path, title):
+#     parts = os.path.splitext(video_path)
+#     extension = parts[1]
+#     reformated_title = camel_to_snake(title.replace(' ', ''))
+#     return reformated_title + extension
 
 
 def add_video_to_queue(metadata):
     print(f'[UPLOAD MANAGER] - Adding Video To Queue')
     with open(TO_UPLOAD_PATH, 'r') as to_upload_json:
         to_upload = json.load(to_upload_json)
-        from pathlib import Path
-
-        video_paths = sorted(Path(VIDEOS_PATH).iterdir(), key=os.path.getmtime)
-
-        video_path = video_paths[-1]
-
-        metadata['path'] = str(video_path)
         to_upload.append(metadata)
+
     with open(TO_UPLOAD_PATH, 'w') as to_upload_json:
         json.dump(to_upload, to_upload_json, indent=2)
 
     with open(TO_UPLOAD_BACKUP_PATH, 'r') as to_upload_json:
         to_upload = json.load(to_upload_json)
-        from pathlib import Path
-
-        video_paths = sorted(Path(VIDEOS_PATH).iterdir(), key=os.path.getmtime)
-
-        video_path = video_paths[-1]
-
-        metadata['path'] = str(video_path)
         to_upload.append(metadata)
+
     with open(TO_UPLOAD_BACKUP_PATH, 'w') as to_upload_json:
         json.dump(to_upload, to_upload_json, indent=2)
 
 
 def upload_video(video_metadata):
+    path = video_metadata['path']
     video_id = upload_default_video(video_metadata['path'])
     update_video(video_id, video_metadata)
+    os.remove(path)
+    print(f"{path} Removed!")
 
 
 def empty_queue():
@@ -89,7 +79,6 @@ def empty_queue():
 
         with open(TO_UPLOAD_PATH, 'w') as to_upload_json:
             json.dump(to_upload, to_upload_json, indent=2)
-
 
 
 def upload_default_video(video_path):
@@ -109,15 +98,16 @@ def upload_default_video(video_path):
     return video_id
 
 
-def update_video(video_id, metadata):
+def update_video(video_id, match_info):
     print(f'[UPLOAD MANAGER] - Updating Video {video_id}')
-    title = metadata['title']
+    player_champion = match_info['player_champion']
+    skinName = match_info['skinName']
+    description = description_builder.get_description(match_info)
+    tags = tags_builder.get_tags(match_info)
+    title = get_title(match_info)
     print(f'[UPLOAD MANAGER] - Setting title to "{title}"')
-    description = metadata['description']
-    tags = metadata['tags']
-    player_champion = metadata['player_champion']
-    skin_id = metadata['skin_id']
-    save_champion_splashart(player_champion, skin_id)
+
+    save_champion_splashart(player_champion, skinName)
 
     os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
     youtube = get_authenticated_service()
@@ -128,7 +118,7 @@ def update_video(video_id, metadata):
             "snippet": {
                 "defaultLanguage": "en",
                 "description": description,
-                "tags": tags + BASE_TAGS,
+                "tags": tags,
                 "title": title,
                 "categoryId": "20",
             },
@@ -155,6 +145,7 @@ def update_video(video_id, metadata):
 
     request.execute()
     print('[UPLOAD MANAGER] - Video Updated')
+
 
 
 def get_authenticated_service():  # Modified

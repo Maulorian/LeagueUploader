@@ -1,4 +1,4 @@
-from lib.externals_sites.opgg_extractor import OPGGExtractor
+from lib.externals_sites import opgg_extractor
 
 
 def get_description(match_info):
@@ -12,8 +12,7 @@ def get_description(match_info):
     # league_points = match_info.get('league_points'),
     # version = match_info.get('version')
     description = 'Players opgg\'s:\n\n'
-    opgg_extractor = OPGGExtractor(match_info['region'])
-    player_page_url = opgg_extractor.get_player_page()
+    player_page_url = opgg_extractor.get_player_page(match_info['region'])
     for player_name, player_data in players_data.items():
         description += f'{player_data.get("champion")} {player_data.get("rank")} : {player_page_url}{player_name.replace(" ", "+")}\n'
     print(f'[{__name__.upper()}] - Description: {description}')

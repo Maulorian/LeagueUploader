@@ -26,10 +26,21 @@ def game_launched():
     return get_league_port() is not None
 
 
-def get_player_data(champion):
+def get_players_data():
     port = get_league_port()
     r = requests.get(f'https://127.0.0.1:{port}/liveclientdata/playerlist', verify=False)
     champions = r.json()
+    return champions
+
+
+def get_player_position(champion):
+    players = get_players_data()
+    players = list(map(lambda player: player.get('championName'), players))
+    return players.index(champion)
+
+
+def get_player_data(champion):
+    champions = get_players_data()
     champion = next(item for item in champions if item.get('championName') == champion)
     print(f'[REPLAY-API] - get_player_data : {{champion={champion}}}')
     return champion
@@ -62,7 +73,6 @@ def enable_recording_settings():
             time.sleep(1)
 
 
-
 def disable_recording_settings():
     print('[REPLAY-API] - Disabling Recording Settings')
     render = {
@@ -79,8 +89,6 @@ def get_current_game_time():
     url = f'https://127.0.0.1:{port}/replay/playback'
     r = requests.get(url, verify=False)
     response_json = r.json()
-    print(f'[REPLAY-API] - Getting Current Game Time: {response_json}')
-
     t = response_json['time']
     print(f'[REPLAY-API] - Getting Current Game Time: {t}')
     return t
@@ -102,3 +110,10 @@ def pause_game():
     r = requests.post(f'https://127.0.0.1:{port}/replay/playback', json=data, verify=False)
     print(r.json())
     return r.json()
+
+
+def get_player_skin(player_champion):
+    skin_name = get_player_data(player_champion).get('skinName')
+    if not skin_name:
+        skin_name = 'default'
+    return skin_name

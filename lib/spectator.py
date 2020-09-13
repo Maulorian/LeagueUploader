@@ -1,32 +1,34 @@
+import os
 import subprocess
 import time
 
 import cassiopeia as cass
+import datapipelines
 import requests
+from cassiopeia import get_current_match
 
-from lib.externals_sites.opgg_extractor import OPGGExtractor
+from lib.externals_sites import opgg_extractor
 from lib.managers import replay_api_manager, obs_manager, league_manager, upload_manager
-
-from lib.builders import description_builder, tags_builder
 
 from dotenv import load_dotenv
 
 from lib.builders.title_builder import get_title
 from lib.managers.game_cfg_manager import enable_settings, disable_settings
+from lib.managers.replay_api_manager import get_player_position
 
 load_dotenv()
 
 WAIT_TIME = 1
 SURREND_TIME = 15 * 60
-ROLE_INDEXES = ['Top', 'Jungle', 'Mid', 'Bot', 'Support']
 BAT_PATH = 'replay.bat'
+VIDEOS_PATH = 'D:\\LeagueReplays\\'
 
 
 def wait_finish():
     current_time = replay_api_manager.get_current_game_time()
     while True:
         new_time = replay_api_manager.get_current_game_time()
-        paused = replay_api_manager.is_game_paused()
+        # paused = replay_api_manager.is_game_paused()
         # if not paused and new_time == current_time and new_time >= SURREND_TIME:
         if new_time == current_time:
             print("[SPECTATOR] - Game ended")
@@ -77,8 +79,7 @@ def find_and_launch_game(match):
     match_id = match.get('id')
     region = match.get('region')
 
-    opgg_extractor = OPGGExtractor(region)
-    replay_command = opgg_extractor.get_game_bat(match_id)
+    replay_command = opgg_extractor.get_game_bat(match_id, region)
     # replay_command = r.text
 
     with open(BAT_PATH, 'w') as f:
@@ -87,7 +88,8 @@ def find_and_launch_game(match):
     subprocess.call([BAT_PATH], stdout=subprocess.DEVNULL)
 
 
-def handle_game(match_info, player_position):
+def handle_game(match_info):
+
     obs_manager.start()
     enable_settings()
 
@@ -104,62 +106,66 @@ def handle_game(match_info, player_position):
 
     wait_for_game_start()
     player_champion = match_info.get('player_champion')
-    match_info['skin_id'] = replay_api_manager.get_player_data(player_champion)
+
+    match_info['skinName'] = replay_api_manager.get_player_skin(player_champion)
+    player_position = get_player_position(player_champion)
+
     league_manager.select_summoner(player_position)
     wait_seconds(WAIT_TIME)
 
 
     league_manager.toggle_recording()
+    from pathlib import Path
+
+    video_paths = sorted(Path(VIDEOS_PATH).iterdir(), key=os.path.getmtime)
+
+    video_path = video_paths[-1]
+
+    match_info['path'] = str(video_path)
 
     wait_finish()
 
     league_manager.toggle_recording()
 
+    close_programs()
+
+
+def close_programs():
     obs_manager.close_obs()
     league_manager.close_game()
-    wait_seconds(WAIT_TIME)
-
     disable_settings()
+
 
 
 def handle_postgame(match_info):
     wait_seconds(WAIT_TIME * 5)
-    description = description_builder.get_description(match_info)
-    tags = tags_builder.get_tags(match_info)
-    title = match_info.get('title')
-    thumbnail_url = match_info.get('thumbnail_url')
-    metadata = {
-        'title': title,
-        'description': description,
-        'tags': tags,
-        'thumbnail_url': thumbnail_url
-    }
-    upload_manager.add_video_to_queue(metadata)
+    upload_manager.add_video_to_queue(match_info)
 
 
-# def get_thumbnail_url(player_champion):
-#     player_data = replay_api_manager.get_player_data(player_champion)
-#     skin_id = player_data.get('skinID')
-#     with open('splashart_urls.json', 'r') as file:
-#         champions = json.load(file)
-#         champion_splash_arts = champions[player_champion]
-#         splash_art = champion_splash_arts.get(skin_id)
-#         return splash_art
+def get_summoner_current_match(summoner):
+    tries = 3
+    while tries > 0:
+        try:
+            match = summoner.current_match
+            return match
+        except datapipelines.common.NotFoundError:
+            tries -= 1
+            time.sleep(1)
 
 
 def spectate(match_data):
+    obs_manager.close_obs()
+
     region = match_data.get('region')
     summoner_name = match_data.get('summoner_name')
 
     summoner = cass.get_summoner(region=region, name=summoner_name)
-    match = summoner.current_match
-    for p in match.participants:
-        print(p.champion)
+    match = get_summoner_current_match(summoner)
+
     if match is None:
         print(f'"{summoner_name}" is not in game')
         return
     match_id = match.id
-    # participants = match.participants
 
     players_data = match_data.get('players_data')
 
@@ -171,7 +177,7 @@ def spectate(match_data):
     enemy_summoner_name = list(players_data.keys())[enemy_position]
     enemy_champion = players_data[enemy_summoner_name].get('champion')
 
-    role = ROLE_INDEXES[player_position % 5]
+    role = player_data.get('role')
     rank = player_data.get('rank')
 
     version = get_current_game_version()
@@ -187,12 +193,14 @@ def spectate(match_data):
         'version': version,
         'id': match_id,
     }
-    title = get_title(match_info)
-    match_info['title'] = title
-    print(f'[SPECTATOR] - Spectating {title}')
+    print(f'[SPECTATOR] - Spectating {get_title(match_info)}')
 
     try:
-        handle_game(match_info, player_position)
-    except subprocess.CalledProcessError:
+        handle_game(match_info)
+    except (subprocess.CalledProcessError, requests.exceptions.ConnectionError):
+        close_programs()
+        os.remove(match_info['path'])
+        print(f"{match_info['path']} Removed!")
         return
+
     handle_postgame(match_info)

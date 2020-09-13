@@ -16,7 +16,6 @@ def enable_settings():
 def disable_settings():
     config = configparser.ConfigParser()
     config.read(GAME_CFG_PATH)
-    print(config.sections())
     config['Performance']['ShadowQuality'] = "0"
     config['General']['windowmode'] = "0"
 

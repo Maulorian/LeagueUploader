@@ -9,57 +9,59 @@ from urllib.parse import unquote, quote
 from datetime import datetime, timedelta
 
 REGION_URLS = {
-    Region.korea: 'kr/',
-    Region.europe_west: 'euw/'
+    Region.korea.value: 'kr/',
+    Region.europe_west.value: 'euw/'
 }
 BASE_URL = ' http://porofessor.gg/'
 SPECTATE_PLAYER_PAGE = 'partial/live-partial/'
 
 
-class PorofessorExtractor:
-    def __init__(self, region):
-        self.region = region
 
-    def get_match_data(self, summoner_name):
-        region_url = REGION_URLS[self.region]
-        full_url = BASE_URL + SPECTATE_PLAYER_PAGE + region_url + summoner_name.replace(' ', '%20')
+def get_match_data(summoner_name, region):
+    region_url = REGION_URLS[region]
+    full_url = BASE_URL + SPECTATE_PLAYER_PAGE + region_url + summoner_name.replace(' ', '%20')
 
-        headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.77 Safari/537.36"}
-        r = requests.get(full_url, headers=headers)
-        html = r.text
-        # with io.open(f'{__name__}.html', "w", encoding="utf-8") as f:
-        #     f.write(html)
-        soup = BeautifulSoup(html, "html.parser")
-        match_data = {}
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.77 Safari/537.36"}
+    r = requests.get(full_url, headers=headers)
+    html = r.text
+    # with io.open(f'{__name__}.html', "w", encoding="utf-8") as f:
+    #     f.write(html)
+    soup = BeautifulSoup(html, "html.parser")
+    match_data = {}
 
-        players = extract_players_order(soup)
-        if not len(players):
-            print(f'[OPGG MANAGER] - No information for this match')
-            return
-
-        duration = get_current_match_duration(soup)
-        # print(f'[{__name__.upper()}] - Players Order: {players}')
-        match_data['players'] = players
-        match_data['duration'] = duration
-        print(f'{datetime.now()} [{__name__.upper()}] - Getting player match data for "{summoner_name}": {match_data}')
-
-        return match_data
-
-
-def get_current_match_duration(soup):
-    duration = soup.find('span', id='gameDuration')
-    if duration is None:
-        return timedelta(seconds=0)
-    try:
-        duration = duration.text
-        duration = duration.replace('(', '')
-        duration = duration.replace(')', '')
-        t = datetime.strptime(duration, "%M:%S")
-        duration = timedelta(minutes=t.minute, seconds=t.second)
-        return duration
-    except ValueError:
+    players = extract_players_order(soup)
+    if not len(players):
+        print(f'[{__name__.upper()}] - No information for this match')
         return
+
+    already_started = match_already_started(soup)
+    # print(f'[{__name__.upper()}] - Players Order: {players}')
+    match_data['players'] = players
+    match_data['already_started'] = already_started
+    print(f'{datetime.now()} [{__name__.upper()}] - Getting player match data for "{summoner_name}": {match_data}')
+
+    return match_data
+
+
+def match_already_started(soup):
+    duration = soup.find('span', id='gameDuration')
+
+    if duration is None:
+        duration = timedelta(seconds=0)
+    else:
+        try:
+            duration = duration.text
+            duration = duration.replace('(', '')
+            duration = duration.replace(')', '')
+            t = datetime.strptime(duration, "%M:%S")
+            duration = timedelta(minutes=t.minute, seconds=t.second)
+        except ValueError:
+            pass
+    print(f'[{__name__.upper()}] - Duration={duration}')
+
+    return duration.seconds - 3 * 60 > 0
+
 
 def get_summoners_name_from_html(soup):
     challengers = soup.findAll("div", class_ ="card card-5")

@@ -9,8 +9,8 @@ from urllib.parse import unquote
 from cassiopeia import Region, Queue
 from datetime import datetime
 REGION_URLS = {
-    Region.korea: 'www.op.gg',
-    Region.europe_west: 'euw.op.gg'
+    Region.korea.value: 'www.op.gg',
+    Region.europe_west.value: 'euw.op.gg'
 }
 SCHEMA = ' http://'
 LADDER = '/ranking/ladder'
@@ -18,6 +18,7 @@ SPECTATE_PLAYER_PAGE = '/summoner/spectator/userName='
 USERNAME_URL = '/summoner/userName='
 SPECTATE_MATCH = '/match/new/batch/id='
 PAGE = '/page='
+SPECTATE_TAB = '/spectate/pro'
 
 
 def extract_match_type(soup):
@@ -28,76 +29,85 @@ def extract_match_type(soup):
         return Queue.ranked_solo_fives
 
 
-class OPGGExtractor:
-    def __init__(self, region):
-        self.region = region
+def spectate_tab(region):
+    region_url = REGION_URLS[region]
+    spectate_tab = SCHEMA + region_url + SPECTATE_TAB
+    print(f'[{__name__.upper()}] - Getting spectate_tab')
 
-    def get_ladder(self, page_nb):
-        region_url = REGION_URLS[self.region]
-        ladder_url = SCHEMA + region_url + LADDER
-        url = ladder_url if page_nb == 1 else ladder_url + PAGE + str(page_nb)
-        print(f'[{__name__.upper()}] - Getting ladder in page {page_nb}')
+    r = requests.get(spectate_tab)
+    html = r.text
+    soup = BeautifulSoup(html, "html.parser")
+    players = extract_names(soup)
+    players_dict = {}
+    for player in players:
+        players_dict[player] = True
+    return players_dict.keys()
 
-        r = requests.get(url)
-        html = r.text
-        # with io.open('opgg_response.html', "w", encoding="utf-8") as f:
-        #     f.write(html)
 
-        soup = BeautifulSoup(html, "html.parser")
-        players = self.extract_names(soup)
-        players_dict = {}
-        for player in players:
-            players_dict[player] = True
-        return players_dict.keys()
+def get_ladder(region):
+    region_url = REGION_URLS[region]
+    ladder_url = SCHEMA + region_url + LADDER
+    url = ladder_url
+    print(f'[{__name__.upper()}] - Getting ladder in first page')
 
-    def extract_names(self, soup):
-        challengers = soup.findAll('a')
-        challengers = list(map(lambda link: link['href'], challengers))
-        challengers = list(filter(lambda href: USERNAME_URL in href, challengers))
-        challengers = list(map(lambda href: href.split('=')[1], challengers))
-        challengers = list(map(lambda challenger: challenger.replace('+', ' '), challengers))
-        challengers = list(map(lambda challenger: unquote(challenger), challengers))
-        challengers = list(map(lambda challenger: challenger.strip(), challengers))
-        return challengers
+    r = requests.get(url)
+    html = r.text
+    # with io.open('opgg_response.html', "w", encoding="utf-8") as f:
+    #     f.write(html)
 
-    def get_match_data(self, player_name):
+    soup = BeautifulSoup(html, "html.parser")
+    players = extract_names(soup)
+    players_dict = {}
+    for player in players:
+        players_dict[player] = True
+    return players_dict.keys()
 
-        region_url = REGION_URLS[self.region]
-        url = SCHEMA + region_url + SPECTATE_PLAYER_PAGE + player_name
+def extract_names(soup):
+    challengers = soup.findAll('a')
+    challengers = list(map(lambda link: link['href'], challengers))
+    challengers = list(filter(lambda href: USERNAME_URL in href, challengers))
+    challengers = list(map(lambda href: href.split('=')[1], challengers))
+    challengers = list(map(lambda challenger: challenger.replace('+', ' '), challengers))
+    challengers = list(map(lambda challenger: unquote(challenger), challengers))
+    challengers = list(map(lambda challenger: challenger.strip(), challengers))
+    return challengers
 
-        r = requests.get(url)
-        html = r.text
-        # with io.open(f'{__name__.upper()}.html', "w", encoding="utf-8") as f:
-        #     f.write(html)
-        soup = BeautifulSoup(html, "html.parser")
+def get_match_data(player_name, region):
 
-        match_data = {}
+    region_url = REGION_URLS[region]
+    url = SCHEMA + region_url + SPECTATE_PLAYER_PAGE + player_name
 
-        players = extract_players_data(soup)
-        if not len(players):
-            print(
-                f'{datetime.now()} [{__name__.upper()}] - "{player_name}" not in game.')
+    r = requests.get(url)
+    html = r.text
+    # with io.open(f'{__name__.upper()}.html', "w", encoding="utf-8") as f:
+    #     f.write(html)
+    soup = BeautifulSoup(html, "html.parser")
 
-            return
+    match_data = {}
 
-        match_type = extract_match_type(soup)
-        # print(f'[{__name__.upper()}] - Players Order: {players}')
-        match_data['players_data'] = players
-        match_data['match_type'] = match_type
-        print(f'{datetime.now()} [{__name__.upper()}] - Getting player match data for "{player_name}": {match_data}')
+    players = extract_players_data(soup)
+    if not len(players):
+        print(f'{datetime.now()} [{__name__.upper()}] - No opgg information for "{player_name}"')
+        return
 
-        return match_data
+    match_type = extract_match_type(soup)
+    # print(f'[{__name__.upper()}] - Players Order: {players}')
+    match_data['players_data'] = players
+    match_data['match_type'] = match_type
+    print(f'{datetime.now()} [{__name__.upper()}] - Getting player match data for "{player_name}": {match_data}')
 
-    def get_game_bat(self, match_id):
-        region_url = REGION_URLS[self.region]
-        url = SCHEMA + region_url + SPECTATE_MATCH + str(match_id)
-        r = requests.get(url)
-        return r.text
+    return match_data
 
-    def get_player_page(self):
-        region_url = REGION_URLS[self.region]
-        player_page_url = SCHEMA + region_url + USERNAME_URL
-        return player_page_url
+def get_game_bat(match_id, region):
+    region_url = REGION_URLS[region]
+    url = SCHEMA + region_url + SPECTATE_MATCH + str(match_id)
+    r = requests.get(url)
+    return r.text
+
+def get_player_page(region):
+    region_url = REGION_URLS[region]
+    player_page_url = SCHEMA + region_url + USERNAME_URL
+    return player_page_url
 
 
 def extract_players_data(soup):
