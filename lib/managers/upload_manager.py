@@ -2,6 +2,7 @@ import json
 import logging
 import os
 import re
+import traceback
 
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
@@ -42,43 +43,73 @@ TO_UPLOAD_BACKUP_PATH = '..\\json\\to_upload_backup.json'
 
 def add_video_to_queue(metadata):
     print(f'[UPLOAD MANAGER] - Adding Video To Queue')
-    with open(TO_UPLOAD_PATH, 'r') as to_upload_json:
-        to_upload = json.load(to_upload_json)
-        to_upload.append(metadata)
 
-    with open(TO_UPLOAD_PATH, 'w') as to_upload_json:
-        json.dump(to_upload, to_upload_json, indent=2)
+    to_upload_json = open(TO_UPLOAD_PATH, "r")
+    # with open(TO_UPLOAD_PATH, 'r') as to_upload_json:
+    to_upload = json.load(to_upload_json)
+    to_upload.append(metadata)
+    to_upload.close()
 
-    with open(TO_UPLOAD_BACKUP_PATH, 'r') as to_upload_json:
-        to_upload = json.load(to_upload_json)
-        to_upload.append(metadata)
+    to_upload_json = open(TO_UPLOAD_PATH, "w")
+    # with open(TO_UPLOAD_PATH, 'w') as to_upload_json:
+    json.dump(to_upload, to_upload_json, indent=2)
+    to_upload.close()
 
-    with open(TO_UPLOAD_BACKUP_PATH, 'w') as to_upload_json:
-        json.dump(to_upload, to_upload_json, indent=2)
+    # with open(TO_UPLOAD_BACKUP_PATH, 'r') as to_upload_json:
+    to_upload_json = open(TO_UPLOAD_BACKUP_PATH, "r")
+    to_upload = json.load(to_upload_json)
+    to_upload.append(metadata)
+    to_upload.close()
+
+    to_upload_json = open(TO_UPLOAD_BACKUP_PATH, "w")
+    json.dump(to_upload, to_upload_json, indent=2)
+    to_upload.close()
 
 
 def upload_video(video_metadata):
     path = video_metadata['path']
     video_id = upload_default_video(video_metadata['path'])
-    update_video(video_id, video_metadata)
-    os.remove(path)
-    print(f"{path} Removed!")
+    try:
+        update_video(video_id, video_metadata)
+        os.remove(path)
+        print(f"{path} Removed!")
+    except Exception:
+        traceback.print_exc()
+        delete_video(video_id)
+        raise VideoUploadException
 
+
+def delete_video(video_id):
+    print(f'[UPLOAD MANAGER] - Deleting video {video_id}')
+    youtube = get_authenticated_service()
+    request = youtube.videos().delete(
+        id=video_id
+    )
+    request.execute()
+
+
+class VideoUploadException(Exception):
+    pass
 
 def empty_queue():
     print('Emptying queue')
     while True:
-        with open(TO_UPLOAD_PATH, 'r') as to_upload_json:
-            to_upload = json.load(to_upload_json)
-            if len(to_upload) == 0:
-                print('uploads are empty')
-                break
+        to_upload_json = open(TO_UPLOAD_PATH, "r")
+        to_upload = json.load(to_upload_json)
+        if len(to_upload) == 0:
+            print('uploads are empty')
+            to_upload_json.close()
+            break
         video_metadata = to_upload.pop(0)
+        to_upload_json.close()
+        try:
+            upload_video(video_metadata)
+        except VideoUploadException:
+            break
 
-        upload_video(video_metadata)
-
-        with open(TO_UPLOAD_PATH, 'w') as to_upload_json:
-            json.dump(to_upload, to_upload_json, indent=2)
+        to_upload_json = open(TO_UPLOAD_PATH, "w")
+        json.dump(to_upload, to_upload_json, indent=2)
+        to_upload_json.close()
 
 
 def upload_default_video(video_path):
@@ -111,6 +142,7 @@ def update_video(video_id, match_info):
 
     os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
     youtube = get_authenticated_service()
+
     request = youtube.videos().update(
         part="snippet,status",
         body={
@@ -121,6 +153,7 @@ def update_video(video_id, match_info):
                 "tags": tags,
                 "title": title,
                 "categoryId": "20",
+
             },
             "status": {
                 "privacyStatus": PRIVACY_STATUS
@@ -130,20 +163,24 @@ def update_video(video_id, match_info):
     print('[UPLOAD MANAGER] - Updating Metadata')
 
     request.execute()
-    request = youtube.videos().rate(
+
+    # youtube = get_authenticated_service()
+    like_update = youtube.videos().rate(
         id=video_id,
         rating="like"
     )
     print('[UPLOAD MANAGER] - Liking Video')
 
-    request.execute()
-    request = youtube.thumbnails().set(
+    like_update.execute()
+
+    # youtube = get_authenticated_service()
+    thumbnail_update = youtube.thumbnails().set(
         videoId=video_id,
         media_body=MediaFileUpload('splash_art.jpeg')
     )
     print('[UPLOAD MANAGER] - Setting Thumbnail')
 
-    request.execute()
+    thumbnail_update.execute()
     print('[UPLOAD MANAGER] - Video Updated')
 
 

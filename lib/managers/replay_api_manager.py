@@ -90,7 +90,7 @@ def get_current_game_time():
     r = requests.get(url, verify=False)
     response_json = r.json()
     t = response_json['time']
-    print(f'[REPLAY-API] - Getting Current Game Time: {t}')
+    # print(f'[REPLAY-API] - Getting Current Game Time: {t}')
     return t
 
 

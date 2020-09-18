@@ -2,7 +2,7 @@ import os
 import time
 import cassiopeia
 
-from lib.challenger_finder import find_ladder_player
+from lib.managers.player_finder_manager import find_ladder_player
 from lib.spectator import spectate
 
 cassiopeia.set_riot_api_key(os.getenv("RIOT_KEY"))

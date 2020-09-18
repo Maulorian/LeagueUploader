@@ -14,9 +14,10 @@ def get_tags(match_info):
     role = role.lower()
     summoner_name = summoner_name.lower()
     tags = []
-    tags.append(f'{player_champion} {role}')
+    tags.append(f'{player_champion} {CHALLENGER_TAG}')
+    tags.append(f'{player_champion} {role} ')
     tags.append(f'{player_champion} {CHALLENGER_TAG} {region}')
-    tags.append(f'{player_champion} {region} {CHALLENGER_TAG} ')
+    tags.append(f'{player_champion} {role} {region}')
     tags.append(f'{player_champion} vs {enemy_champion}')
     tags.append(f'{summoner_name} {player_champion}')
     tags.append(f'{summoner_name}')

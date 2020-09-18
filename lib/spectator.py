@@ -111,10 +111,13 @@ def handle_game(match_info):
     player_position = get_player_position(player_champion)
 
     league_manager.select_summoner(player_position)
+    league_manager.enable_runes()
     wait_seconds(WAIT_TIME)
 
 
     league_manager.toggle_recording()
+    wait_seconds(WAIT_TIME)
+
     from pathlib import Path
 
     video_paths = sorted(Path(VIDEOS_PATH).iterdir(), key=os.path.getmtime)
@@ -154,7 +157,7 @@ def get_summoner_current_match(summoner):
 
 
 def spectate(match_data):
-    obs_manager.close_obs()
+    close_programs()
 
     region = match_data.get('region')
     summoner_name = match_data.get('summoner_name')
@@ -197,10 +200,14 @@ def spectate(match_data):
 
     try:
         handle_game(match_info)
-    except (subprocess.CalledProcessError, requests.exceptions.ConnectionError):
+    except (subprocess.CalledProcessError, requests.exceptions.ConnectionError) as e:
+        print(e)
         close_programs()
-        os.remove(match_info['path'])
-        print(f"{match_info['path']} Removed!")
+        wait_seconds(WAIT_TIME)
+
+        if 'path' in match_info:
+            os.remove(match_info['path'])
+            print(f"{match_info['path']} Removed!")
         return
 
     handle_postgame(match_info)

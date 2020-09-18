@@ -42,3 +42,9 @@ def close_game():
     close_command = f'TASKKILL /F /IM \"{EXE}\"'
     print(close_command)
     subprocess.Popen(close_command, shell=True)
+
+
+def enable_runes():
+    print('[LEAGUE MANAGER] - Enabling Runes')
+
+    keyboard.send_keys('{c down}{c up}')
