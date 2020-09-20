@@ -55,14 +55,9 @@ def find_ladder_player():
                 continue
 
             already_started = porofessor_match_data.get('already_started')
-            if already_started:
-                continue
-
-            # print(f'[{__name__.upper()}] - Duration={duration}')
-
-            # just_started = duration.seconds - 2 * 60 - 3.5*60 < 0
-            # if not just_started:
+            # if already_started:
             #     continue
+
             porofessor_players = porofessor_match_data.get('players')
 
             players_data = get_final_players_data(porofessor_players, opgg_players_data)

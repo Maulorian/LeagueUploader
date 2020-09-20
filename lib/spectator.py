@@ -1,12 +1,15 @@
 import os
+import re
 import subprocess
 import time
+import traceback
 
 import cassiopeia as cass
 import datapipelines
 import requests
 from cassiopeia import get_current_match
 
+from lib.builders import description_builder, tags_builder
 from lib.externals_sites import opgg_extractor
 from lib.managers import replay_api_manager, obs_manager, league_manager, upload_manager
 
@@ -34,7 +37,6 @@ def wait_finish():
             print("[SPECTATOR] - Game ended")
             return
         current_time = new_time
-        print("[SPECTATOR] - Still in game")
         time.sleep(0.5)
 
 
@@ -99,15 +101,15 @@ def handle_game(match_info):
     wait_for_game_launched()
     time.sleep(WAIT_TIME)
 
-
-
     replay_api_manager.enable_recording_settings()
     wait_seconds(WAIT_TIME)
 
     wait_for_game_start()
     player_champion = match_info.get('player_champion')
 
-    match_info['skinName'] = replay_api_manager.get_player_skin(player_champion)
+    match_info['skin_name'] = replay_api_manager.get_player_skin(player_champion)
+    match_info['runes'] = replay_api_manager.get_player_runes(player_champion)
+    match_info['summonerSpells'] = replay_api_manager.get_player_summoner_spells(player_champion)
     player_position = get_player_position(player_champion)
 
     league_manager.select_summoner(player_position)
@@ -127,6 +129,7 @@ def handle_game(match_info):
     match_info['path'] = str(video_path)
 
     wait_finish()
+    match_info['items'] = replay_api_manager.get_player_items(player_champion)
 
     league_manager.toggle_recording()
 
@@ -156,6 +159,13 @@ def get_summoner_current_match(summoner):
             time.sleep(1)
 
 
+def get_tier_lp_from_rank(rank):
+    p = re.compile("([a-zA-Z]*) \\(([0-9]*) LP\\)")
+    result = p.search(rank)
+    tier = result.group(1)
+    lp = result.group(2)
+    return tier, lp
+
 def spectate(match_data):
     close_programs()
 
@@ -182,7 +192,7 @@ def spectate(match_data):
 
     role = player_data.get('role')
     rank = player_data.get('rank')
-
+    tier, lp = get_tier_lp_from_rank(rank)
     version = get_current_game_version()
 
     match_info = {
@@ -196,12 +206,16 @@ def spectate(match_data):
         'version': version,
         'id': match_id,
     }
-    print(f'[SPECTATOR] - Spectating {get_title(match_info)}')
+
+
+
+    print(f"[SPECTATOR] - Spectating {get_title(match_info)}")
 
     try:
         handle_game(match_info)
     except (subprocess.CalledProcessError, requests.exceptions.ConnectionError) as e:
-        print(e)
+        traceback.print_exc()
+
         close_programs()
         wait_seconds(WAIT_TIME)
 
@@ -209,5 +223,20 @@ def spectate(match_data):
             os.remove(match_info['path'])
             print(f"{match_info['path']} Removed!")
         return
+    metadata = {
+        'description': description_builder.get_description(match_info),
+        'tags': tags_builder.get_tags(match_info),
+        'title': get_title(match_info),
+        'player_champion': player_champion,
+        'skin_name': match_info['skin_name'],
+        'items': match_info['items'],
+        'runes': match_info['runes'],
+        'summonerSpells': match_info['summonerSpells'],
+        'path': match_info['path'],
+        'region': region,
+        'tier': tier,
+        'lp': lp,
+        'role': role,
 
-    handle_postgame(match_info)
+    }
+    handle_postgame(metadata)

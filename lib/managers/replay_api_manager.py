@@ -42,7 +42,7 @@ def get_player_position(champion):
 def get_player_data(champion):
     champions = get_players_data()
     champion = next(item for item in champions if item.get('championName') == champion)
-    print(f'[REPLAY-API] - get_player_data : {{champion={champion}}}')
+    print(f'[REPLAY-API] - Getting player data : {champion}')
     return champion
 
 
@@ -117,3 +117,29 @@ def get_player_skin(player_champion):
     if not skin_name:
         skin_name = 'default'
     return skin_name
+
+
+def get_player_runes(player_champion):
+    runes = get_player_data(player_champion).get('runes')
+    player_runes = {}
+    player_runes['keystone'] = runes.get('keystone').get('id')
+    player_runes['secondaryRuneTree'] = runes.get('secondaryRuneTree').get('id')
+    return player_runes
+
+
+def get_player_items(player_champion):
+    items = get_player_data(player_champion).get('items')
+    items = sorted(items, key=lambda item: item.get('price'))
+    items = list(map(lambda item: item.get('itemID'), items))
+    # player_items = []
+    # for item in items:
+    #     player_items.append(item.get('itemID'))
+    return items
+
+
+def get_player_summoner_spells(player_champion):
+    summoner_spells = get_player_data(player_champion).get('summonerSpells')
+    player_summoner_spells = []
+    player_summoner_spells.append(summoner_spells.get('summonerSpellOne').get('displayName'))
+    player_summoner_spells.append(summoner_spells.get('summonerSpellTwo').get('displayName'))
+    return player_summoner_spells

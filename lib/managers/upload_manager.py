@@ -14,7 +14,7 @@ from youtube_uploader_selenium import YouTubeUploader
 
 from lib.builders import description_builder, tags_builder
 from lib.builders.title_builder import get_title
-from lib.managers.thumbnail_manager import save_champion_splashart
+from lib.managers.thumbnail_manager import save_champion_splashart, get_flag_image, add_details_to_splashart
 
 VIDEOS_PATH = 'D:\\LeagueReplays\\'
 METADATA_PATH = '../json/metadata.json'
@@ -45,25 +45,22 @@ def add_video_to_queue(metadata):
     print(f'[UPLOAD MANAGER] - Adding Video To Queue')
 
     to_upload_json = open(TO_UPLOAD_PATH, "r")
-    # with open(TO_UPLOAD_PATH, 'r') as to_upload_json:
     to_upload = json.load(to_upload_json)
     to_upload.append(metadata)
-    to_upload.close()
+    to_upload_json.close()
 
     to_upload_json = open(TO_UPLOAD_PATH, "w")
-    # with open(TO_UPLOAD_PATH, 'w') as to_upload_json:
     json.dump(to_upload, to_upload_json, indent=2)
-    to_upload.close()
+    to_upload_json.close()
 
-    # with open(TO_UPLOAD_BACKUP_PATH, 'r') as to_upload_json:
     to_upload_json = open(TO_UPLOAD_BACKUP_PATH, "r")
     to_upload = json.load(to_upload_json)
     to_upload.append(metadata)
-    to_upload.close()
+    to_upload_json.close()
 
     to_upload_json = open(TO_UPLOAD_BACKUP_PATH, "w")
     json.dump(to_upload, to_upload_json, indent=2)
-    to_upload.close()
+    to_upload_json.close()
 
 
 def upload_video(video_metadata):
@@ -129,17 +126,18 @@ def upload_default_video(video_path):
     return video_id
 
 
-def update_video(video_id, match_info):
+def update_video(video_id, metadata):
     print(f'[UPLOAD MANAGER] - Updating Video {video_id}')
-    player_champion = match_info['player_champion']
-    skinName = match_info['skinName']
-    description = description_builder.get_description(match_info)
-    tags = tags_builder.get_tags(match_info)
-    title = get_title(match_info)
+    player_champion = metadata['player_champion']
+    skin_name = metadata['skin_name']
+    description = metadata['description']
+    tags = metadata['tags']
+    title = metadata['title']
+    region = metadata['region']
     print(f'[UPLOAD MANAGER] - Setting title to "{title}"')
 
-    save_champion_splashart(player_champion, skinName)
-
+    save_champion_splashart(player_champion, skin_name)
+    add_details_to_splashart(metadata)
     os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
     youtube = get_authenticated_service()
 
