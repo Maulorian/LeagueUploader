@@ -82,22 +82,22 @@ def get_match_data(player_name, region):
 
     r = requests.get(url)
     html = r.text
-    # with io.open(f'{__name__.upper()}.html', "w", encoding="utf-8") as f:
-    #     f.write(html)
+    with io.open(f'{__name__.upper()}.html', "w", encoding="utf-8") as f:
+        f.write(html)
     soup = BeautifulSoup(html, "html.parser")
 
     match_data = {}
 
     players = extract_players_data(soup)
     if not len(players):
-        print(f'{datetime.now()} [{__name__.upper()}] - No opgg information for "{player_name}"')
+        # print(f'{datetime.now()} [{__name__.upper()}] - No opgg information for "{player_name}"')
         return
 
     match_type = extract_match_type(soup)
     # print(f'[{__name__.upper()}] - Players Order: {players}')
     match_data['players_data'] = players
     match_data['match_type'] = match_type
-    print(f'{datetime.now()} [{__name__.upper()}] - Getting player match data for "{player_name}": {match_data}')
+    print(f'{datetime.now()} [{__name__.upper()}] - Getting player match data for "{player_name}"')
 
     return match_data
 

@@ -11,7 +11,7 @@ from cassiopeia import get_current_match
 
 from lib.builders import description_builder, tags_builder
 from lib.externals_sites import opgg_extractor
-from lib.managers import replay_api_manager, obs_manager, league_manager, upload_manager
+from lib.managers import replay_api_manager, obs_manager, league_manager, upload_manager, programs_manager
 
 from dotenv import load_dotenv
 
@@ -114,6 +114,7 @@ def get_video_path():
 
 def handle_game(match_info):
     obs_manager.start()
+    # programs_manager.close_discord()
     enable_settings()
 
     time.sleep(WAIT_TIME)

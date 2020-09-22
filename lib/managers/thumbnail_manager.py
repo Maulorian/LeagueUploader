@@ -262,10 +262,10 @@ def create_info_area(match_info, splash_art):
     info_area.putalpha(0)
 
     rank_info_area = get_rank_region_info_area(info_area, match_info)
-    rank_info_area.save('rank_info_area.png', quality=100)
+    # rank_info_area.save('rank_info_area.png', quality=100)
 
     player_info_area = get_player_info_area(info_area, match_info)
-    player_info_area.save('player_info_area.png', quality=100)
+    # player_info_area.save('player_info_area.png', quality=100)
 
 
     paste_with_center_coords(info_area, rank_info_area, info_area.width / 2, info_area.height * 0.2)

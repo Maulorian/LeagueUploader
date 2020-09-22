@@ -1,12 +1,14 @@
-from cassiopeia import Region, Queue
+import datapipelines
+from cassiopeia import Region, Queue, get_summoner, get_current_match
 
 from lib.externals_sites import opgg_extractor, porofessor_extractor
+from lib.externals_sites.porofessor_extractor import PorofessorNoResponseException
 
 REGIONS_TO_SEARCH = [Region.korea.value, Region.europe_west.value]
-# REGIONS_TO_SEARCH = [Region.europe_west, Region.korea]
+# REGIONS_TO_SEARCH = [Region.europe_west.value, Region.korea.value]
 
 ROLE_INDEXES = ['Top', 'Jgl', 'Mid', 'Bot', 'Sup']
-interests = ['Vayne', 'Irelia', 'Fiora', 'Yasuo']
+interests = ['Samira', 'Vayne', 'Irelia', 'Fiora', 'Yasuo']
 
 
 def get_final_players_data(porofessor_players, opgg_players_data):
@@ -25,11 +27,24 @@ def find_ladder_player():
     for region in REGIONS_TO_SEARCH:
         # while in_challenger_league:
         players = opgg_extractor.get_ladder(region)
-        for summoner_name in players:
+        for index, summoner_name in enumerate(players):
             if summoner_name in already_searched_players:
-                print(f'{summoner_name} already checked')
+                # print(f'{summoner_name} already checked')
                 continue
+            print(f'[{index}/{len(players)}] - Checking {summoner_name}')
+            # summoner = get_summoner(name=summoner_name, region=region)
+            #
+            # try:
+            #     current_match = get_current_match(summoner, region=region)
+            # except datapipelines.common.NotFoundError:
+            #     continue
 
+            # duration = current_match.duration
+            # print(f'{duration=}')
+            #
+            # if duration.days == 0 and duration.seconds > 0:
+            #     continue
+            # print(f'valid duration: {current_match.duration}')
             opgg_match_data = opgg_extractor.get_match_data(summoner_name, region)
 
             if not opgg_match_data:
@@ -48,9 +63,10 @@ def find_ladder_player():
             if opgg_match_data.get('match_type') != Queue.ranked_solo_fives:
                 print(f"Not a ranked")
                 continue
-
-            porofessor_match_data = porofessor_extractor.get_match_data(summoner_name, region)
-
+            try:
+                porofessor_match_data = porofessor_extractor.get_match_data(summoner_name, region)
+            except PorofessorNoResponseException:
+                return
             if not porofessor_match_data:
                 continue
 
