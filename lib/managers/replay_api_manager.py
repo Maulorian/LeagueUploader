@@ -92,6 +92,7 @@ def get_current_game_time():
     url = f'https://127.0.0.1:{port}/replay/playback'
     r = requests.get(url, verify=False)
     response_json = r.json()
+    print(response_json)
     t = response_json['time']
     # print(f'[REPLAY-API] - Getting Current Game Time: {t}')
     return t

@@ -10,7 +10,7 @@ import requests
 from cassiopeia import get_current_match
 
 from lib.builders import description_builder, tags_builder
-from lib.externals_sites import opgg_extractor
+from lib.extractors import opgg_extractor
 from lib.managers import replay_api_manager, obs_manager, league_manager, upload_manager, programs_manager
 
 from dotenv import load_dotenv

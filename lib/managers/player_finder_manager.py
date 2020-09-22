@@ -1,8 +1,8 @@
 import datapipelines
 from cassiopeia import Region, Queue, get_summoner, get_current_match
 
-from lib.externals_sites import opgg_extractor, porofessor_extractor
-from lib.externals_sites.porofessor_extractor import PorofessorNoResponseException
+from lib.extractors import opgg_extractor, porofessor_extractor
+from lib.extractors.porofessor_extractor import PorofessorNoResponseException
 
 REGIONS_TO_SEARCH = [Region.korea.value, Region.europe_west.value]
 # REGIONS_TO_SEARCH = [Region.europe_west.value, Region.korea.value]
