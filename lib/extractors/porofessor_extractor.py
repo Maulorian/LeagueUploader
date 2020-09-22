@@ -1,4 +1,5 @@
 import io
+import re
 import traceback
 
 import requests
@@ -18,7 +19,7 @@ REGION_URLS = {
 }
 BASE_URL = ' http://porofessor.gg/'
 SPECTATE_PLAYER_PAGE = 'partial/live-partial/'
-
+NOT_IN_GAME = 'The summoner is not in-game, please retry later. The game must be on the loading screen or it must have started.'
 
 class PorofessorNoResponseException(Exception):
     pass
@@ -32,6 +33,8 @@ def get_match_data(summoner_name, region):
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.77 Safari/537.36"}
     r = requests.get(full_url, headers=headers)
     html = r.text
+    if NOT_IN_GAME in html:
+        return
 
     if TRY_AGAIN_LATER in html:
         print('PorofessorNoResponseException')
@@ -39,12 +42,14 @@ def get_match_data(summoner_name, region):
     soup = BeautifulSoup(html, "html.parser")
     match_data = {}
 
-    players = extract_players_order(soup)
-    if not len(players):
-        print(f'[{__name__.upper()}] - No information for this match')
-        return
+    players_html = soup.findAll("div", {'class': 'card card-5'})
+    players = extract_players_order(players_html)
+    # if not len(players):
+    #     print(f'[{__name__.upper()}] - No information for this match')
+    #     return
 
-    already_started = match_already_started(soup)
+    duration_tag = soup.find('span', id='gameDuration')
+    already_started = match_already_started(duration_tag)
     # print(f'[{__name__.upper()}] - Players Order: {players}')
     match_data['players'] = players
     match_data['already_started'] = already_started
@@ -53,23 +58,29 @@ def get_match_data(summoner_name, region):
     return match_data
 
 
-def match_already_started(soup):
-    duration = soup.find('span', id='gameDuration')
-
+def match_already_started(duration_tag):
+    if duration_tag is None:
+        return False
+    duration_string = duration_tag.text
+    duration = get_duration(duration_string)
     if duration is None:
-        duration = timedelta(seconds=0)
-    else:
-        try:
-            duration = duration.text
-            duration = duration.replace('(', '')
-            duration = duration.replace(')', '')
-            t = datetime.strptime(duration, "%M:%S")
-            duration = timedelta(minutes=t.minute, seconds=t.second)
-        except ValueError:
-            pass
-    print(f'[{__name__.upper()}] - Duration={duration}')
+        return True
+    print(f'[{__name__.upper()}] - {duration=}')
 
     return duration.seconds - 3 * 60 > 0
+
+
+def get_duration(duration_string):
+    pattern = re.compile("^[0-9]{2}:[0-9]{2}$")
+    if not pattern.match(duration_string):
+        return
+
+    duration = duration_string.text
+    duration = duration.replace('(', '')
+    duration = duration.replace(')', '')
+    t = datetime.strptime(duration, "%M:%S")
+    duration = timedelta(minutes=t.minute, seconds=t.second)
+    return duration
 
 
 def get_summoners_name_from_html(soup):
@@ -98,8 +109,8 @@ def get_summoners_name_from_html(soup):
 #     return challengers
 
 
-def extract_players_order(soup):
-    players_html = soup.findAll("div", {'class': 'card card-5'})
+def extract_players_order(players_html):
+    # players_html = soup.findAll("div", {'class': 'card card-5'})
     players = list(map(lambda player_html: player_html.attrs['data-summonername'].strip(), players_html))
     return players
 
