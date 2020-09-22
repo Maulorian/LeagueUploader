@@ -12,6 +12,10 @@ PORT_COMMAND = "Get-NetTCPConnection -OwningProcess $(Get-Process 'League of Leg
                "$_.LocalAddress -EQ '127.0.0.1' -And $_.RemoteAddress -EQ '0.0.0.0' } | Select-Object LocalPort "
 
 
+class PortNotFoundException(Exception):
+    pass
+
+
 def get_league_port():
     # print('[REPLAY-API] - Getting League Port')
 
@@ -19,8 +23,7 @@ def get_league_port():
     for sub in output.split():
         if sub.isdigit():
             return int(sub)
-    return None
-
+    raise PortNotFoundException
 
 def game_launched():
     return get_league_port() is not None
@@ -129,12 +132,11 @@ def get_player_runes(player_champion):
 
 def get_player_items(player_champion):
     items = get_player_data(player_champion).get('items')
-    items = sorted(items, key=lambda item: item.get('price'))
-    items = list(map(lambda item: item.get('itemID'), items))
-    # player_items = []
-    # for item in items:
-    #     player_items.append(item.get('itemID'))
-    return items
+    items = sorted(items, key=lambda item: item.get('price'), reverse=True)
+    player_items = []
+    for item in items:
+        player_items.append(item.get('itemID'))
+    return player_items
 
 
 def get_player_summoner_spells(player_champion):

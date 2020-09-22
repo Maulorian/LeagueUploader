@@ -8,6 +8,9 @@ from urllib.parse import unquote
 
 from cassiopeia import Region, Queue
 from datetime import datetime
+
+from lib.utils import pretty_log
+
 REGION_URLS = {
     Region.korea.value: 'www.op.gg',
     Region.europe_west.value: 'euw.op.gg'
@@ -43,12 +46,12 @@ def spectate_tab(region):
         players_dict[player] = True
     return players_dict.keys()
 
-
+@pretty_log
 def get_ladder(region):
     region_url = REGION_URLS[region]
     ladder_url = SCHEMA + region_url + LADDER
     url = ladder_url
-    print(f'[{__name__.upper()}] - Getting ladder in first page')
+    # print(f'[{__name__.upper()}] - Getting ladder in first page')
 
     r = requests.get(url)
     html = r.text

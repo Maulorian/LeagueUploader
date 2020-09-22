@@ -9,6 +9,7 @@ cassiopeia.set_riot_api_key(os.getenv("RIOT_KEY"))
 WAITING_TIME = 10
 
 while True:
+
     match_data = find_ladder_player()
     if match_data:
         spectate(match_data)

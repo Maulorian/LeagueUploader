@@ -14,12 +14,12 @@ RUNES_PATH = '../assets/runes/'
 TREES_PATH = 'trees/'
 ITEMS_PATH = '../assets/items/'
 SPLASH_PATH = 'splash_art.jpeg'
-FONT_PATH = '../fonts/PlayfairDisplay-VariableFont_wght.ttf'
+FONT_PATH = '../fonts/thumbnail_font.ttf'
 
 RUNES_URL = 'http://ddragon.leagueoflegends.com/cdn/10.19.1/data/en_US/runesReforged.json'
 DRAGON_URL = 'https://ddragon.leagueoflegends.com/cdn/img/'
 
-STROKE_WIDTH = 2
+STROKE_WIDTH = 3
 ALPHA_VALUE = 200
 
 def save_champion_splashart(champion, skinName):
@@ -51,9 +51,9 @@ def get_rank_image(rank_info_area, tier, lp):
     tier_image = get_tier_image(rank_info_area, tier)
     lp_image = get_lp_image(rank_info_area, lp)
 
-    paste_with_center_coords(rank_info_area, tier_image, rank_info_area_width / 2, rank_info_area_height * 0.4)
+    paste_with_center_coords(rank_info_area, tier_image, rank_info_area_width / 2, rank_info_area_height * 0.375)
 
-    paste_with_center_coords(rank_info_area, lp_image, rank_info_area_width / 2, rank_info_area_height * 0.7)
+    paste_with_center_coords(rank_info_area, lp_image, rank_info_area_width / 2, rank_info_area_height * 0.825)
     return rank_info_area
 
 
@@ -63,7 +63,7 @@ def get_rank_region_info_area(info_area, match_info):
     region = match_info['region']
 
     rank_info_area_width = info_area.width
-    rank_info_area_height = int(0.4 * info_area.height)
+    rank_info_area_height = int(0.35 * info_area.height)
 
     rank_info_area = Image.new('RGBA', (rank_info_area_width, rank_info_area_height), (0, 0, 0))
     rank_info_area.putalpha(ALPHA_VALUE)
@@ -71,21 +71,21 @@ def get_rank_region_info_area(info_area, match_info):
     rank_image = get_rank_image(rank_info_area, tier, lp)
 
 
-    runes_width = int(info_area.width * 0.3)
-    maxsize = (runes_width, runes_width)
+    width = int(rank_info_area.width * 0.3)
+    maxsize = (width, width)
     region_image = get_flag_image(region)
     region_image = region_image.resize(maxsize, Image.ANTIALIAS)
 
-    paste_with_center_coords(rank_info_area, rank_image, (rank_info_area_width / 6) * 2, rank_info_area_height / 2)
-    paste_with_center_coords(rank_info_area, region_image, (rank_info_area_width / 6) * 5, rank_info_area_height / 2)
+    paste_with_center_coords(rank_info_area, rank_image, (rank_info_area_width / 4) * 1, rank_info_area_height / 2)
+    paste_with_center_coords(rank_info_area, region_image, (rank_info_area_width / 4) * 3, rank_info_area_height / 2)
 
     return rank_info_area
 
-def get_tier_image(info_area, tier):
+def get_tier_image(rank_info_area, tier):
     tier = Image.open(f'{TIER_PATH}{tier}.png')
     aspect_ratio = tier.width / tier.height
-    tier_width = info_area.width
-    tier_height = int(tier_width / aspect_ratio)
+    tier_height = int(rank_info_area.height * 0.7)
+    tier_width = int(tier_height * aspect_ratio)
     maxsize = (tier_width, tier_height)
     tier = tier.resize(maxsize, Image.ANTIALIAS)
     # paste_with_center_coords(info_area, tier, info_area.width / 2, info_area.width / 2)
@@ -94,16 +94,16 @@ def get_tier_image(info_area, tier):
 
 
 def get_champion_name_image(info_area, champion_name: str, role):
-    champion_name_height = int(info_area.height * 0.2)
+    champion_name_height = info_area.height
 
     champion_name_image = Image.new('RGBA', (info_area.width, champion_name_height), (0, 0, 0))
     champion_name_image.putalpha(0)
 
     draw = ImageDraw.Draw(champion_name_image)
 
-    text = f'{champion_name.upper()} {role.upper()}'
+    text = f'{champion_name.upper()}'
 
-    font = ImageFont.truetype(FONT_PATH, int(info_area.width * 0.15))
+    font = ImageFont.truetype(FONT_PATH, int(info_area.width * 0.16))
     w, h = draw.textsize(text, font=font)
 
     draw.text(((info_area.width - w) / 2, (champion_name_height - h) / 2), text, (255, 255, 255), font=font, stroke_width=STROKE_WIDTH, stroke_fill=(0, 0, 0))
@@ -111,14 +111,14 @@ def get_champion_name_image(info_area, champion_name: str, role):
 
 
 def get_lp_image(info_area, lp):
-    lp_image_height = int(info_area.height * 0.15)
+    lp_image_height = int(info_area.height * 0.5)
 
     lp_image = Image.new('RGBA', (info_area.width, lp_image_height), (0, 0, 0))
     lp_image.putalpha(0)
 
     draw = ImageDraw.Draw(lp_image)
 
-    font = ImageFont.truetype(FONT_PATH, int(info_area.width * 0.1))
+    font = ImageFont.truetype(FONT_PATH, int(info_area.width * 0.2))
     w, h = draw.textsize(f'{lp} LP', font=font)
 
     draw.text(((info_area.width - w) / 2, (lp_image_height - h) / 2), f'{lp} LP', (255, 255, 255), font=font, stroke_width=STROKE_WIDTH, stroke_fill=(0, 0, 0))
@@ -142,11 +142,11 @@ def get_summoners_spell_together(summoner_one_image, summoner_two_image):
 def get_runes_image(info_area, match_info):
     runes = match_info['runes']
     summonerSpells = match_info['summonerSpells']
+    role = match_info['role']
     summoner_one = summonerSpells[0]
     summoner_two = summonerSpells[1]
-    region = match_info['region']
 
-    runes_image_height = int(info_area.height * 0.2)
+    runes_image_height = info_area.height
     runes_image_width = info_area.width
     keystone = runes['keystone']
     secondaryRuneTree = runes['secondaryRuneTree']
@@ -177,19 +177,28 @@ def get_runes_image(info_area, match_info):
 
     summoners_spell_image = get_summoners_spell_together(summoner_one_image, summoner_two_image)
 
-    paste_with_center_coords(runes_image, summoners_spell_image, (runes_image_width / 6) * 1.25, runes_image_height / 2)
+    # draw = ImageDraw.Draw(runes_image)
+    #
+    # text = f'{role.upper()}'
+    #
+    # font = ImageFont.truetype(FONT_PATH, int(info_area.width * 0.1))
+    # w, h = draw.textsize(text, font=font)
+
+    # draw.text(((runes_image.width - w) / 2, ((runes_image.height - h) / 2) - 10), text, (255, 255, 255), font=font,
+    #           stroke_width=STROKE_WIDTH, stroke_fill=(0, 0, 0))
+    paste_with_center_coords(runes_image, summoners_spell_image, (runes_image_width / 6) * 1.8, runes_image_height / 2)
     # paste_with_center_coords(runes_image, summoner_two_image, (runes_image_width / 6) * 2, runes_image_height / 2)
 
 
-    paste_with_center_coords(runes_image, primary_image, (runes_image_width / 6) * 4.2, runes_image_height / 2)
-    paste_with_center_coords(runes_image, secondary_image, (runes_image_width / 6) * 5.2, runes_image_height / 2)
+    paste_with_center_coords(runes_image, primary_image, (runes_image_width / 6) * 3.8, runes_image_height / 2)
+    paste_with_center_coords(runes_image, secondary_image, (runes_image_width / 6) * 4.8, runes_image_height / 2)
     return runes_image
 
 
 def get_item_image(item_id):
     items = cassiopeia.get_items(region=Region.europe_west)
     item = next(item for item in items if item.id == item_id)
-    print(item.name, item.gold.total)
+    print(item.id, item.name, item.gold.total)
 
     if item.gold.total < 1100:
         return
@@ -223,19 +232,23 @@ def get_player_info_area(info_area, match_info):
     role = match_info['role']
     items = match_info['items']
 
-    info_area_width = int(0.4 * info_area.width)
-    info_area_height = int(info_area.height * 0.6)
+    info_area_width = info_area.width
+    info_area_height = int(info_area.height * 0.55)
 
     player_info_area = Image.new('RGBA', (info_area_width, info_area_height), (0, 0, 0))
     player_info_area.putalpha(ALPHA_VALUE)
 
-    champion_name_image = get_champion_name_image(info_area, player_champion, role)
-    runes_image = get_runes_image(info_area, match_info)
-    items_image = get_items_image(info_area, items)
+    champion_name_image = get_champion_name_image(player_info_area, player_champion, role)
+    runes_image = get_runes_image(player_info_area, match_info)
+    items_image = get_items_image(player_info_area, items)
 
-    paste_with_center_coords(player_info_area, champion_name_image, info_area.width / 2, info_area.height * 0.5)
-    paste_with_center_coords(player_info_area, runes_image, info_area.width / 2, info_area.height * 0.7)
-    paste_with_center_coords(player_info_area, items_image, info_area.width / 2, info_area.height * 0.9)
+    paste_with_center_coords(player_info_area, champion_name_image, player_info_area.width / 2, (player_info_area.height / 6) * 1)
+    paste_with_center_coords(player_info_area, runes_image, player_info_area.width / 2, (player_info_area.height / 6) * 3)
+    paste_with_center_coords(player_info_area, items_image, player_info_area.width / 2, (player_info_area.height / 6) * 5)
+
+    draw = ImageDraw.Draw(player_info_area)
+    draw.line((player_info_area.width * 0.1, (player_info_area.height / 6) * 4, player_info_area.width * 0.9, (player_info_area.height / 6) * 4), fill=(255, 255, 255), width=3)
+
 
     return player_info_area
 
@@ -249,19 +262,23 @@ def create_info_area(match_info, splash_art):
     info_area.putalpha(0)
 
     rank_info_area = get_rank_region_info_area(info_area, match_info)
+    rank_info_area.save('rank_info_area.png', quality=100)
+
     player_info_area = get_player_info_area(info_area, match_info)
+    player_info_area.save('player_info_area.png', quality=100)
+
 
     paste_with_center_coords(info_area, rank_info_area, info_area.width / 2, info_area.height * 0.2)
-    # paste_with_center_coords(info_area, player_info_area, info_area.width / 2, info_area.height * 0.5)
+    paste_with_center_coords(info_area, player_info_area, info_area.width / 2, info_area.height * 0.7)
 
     # info_area = add_flag(info_area, region)
-    info_area.save('info_area.png', quality=95)
+    info_area.save('info_area.png', quality=100)
     return info_area
 
 
 def add_details_to_splashart(match_info):
-    splash_art = Image.open('splash_art_backup.jpg')
-    # splash_art = Image.open(SPLASH_PATH)
+    # splash_art = Image.open('splash_art_backup.jpg')
+    splash_art = Image.open(SPLASH_PATH)
 
     info_area = create_info_area(match_info, splash_art)
     upper_margin = (splash_art.height - info_area.height) // 2

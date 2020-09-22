@@ -5,9 +5,11 @@ import pywinauto
 from pywinauto.application import Application
 import pywinauto.keyboard as keyboard
 
+from lib.utils import pretty_log
+
 EXE = 'League of Legends.exe'
 LEAGUE_PATH = f'C:\\Riot Games\\League of Legends\\Game\\{EXE}'
-
+BUGSPLAT_EXE = 'BsSndRpt.exe'
 KEYBINDS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0']
 
 
@@ -35,6 +37,34 @@ def select_summoner(position):
 def toggle_recording():
     print('[LEAGUE MANAGER] - Toggling Recording')
     keyboard.send_keys('{F10 down}{F10 up}')
+
+
+import psutil
+
+
+def checkIfProcessRunning(processName):
+    '''
+    Check if there is any running process that contains the given name processName.
+    '''
+    # Iterate over the all the running process
+    for proc in psutil.process_iter():
+        try:
+            # Check if process name contains the given name string.
+            if processName.lower() in proc.name().lower():
+                return True
+        except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+            pass
+    return False
+
+
+def bugsplat_exists():
+    return checkIfProcessRunning(BUGSPLAT_EXE)
+
+
+@pretty_log
+def kill_bugsplat():
+    close_command = f'TASKKILL /F /IM \"{BUGSPLAT_EXE}\"'
+    subprocess.Popen(close_command, shell=True)
 
 
 def close_game():
