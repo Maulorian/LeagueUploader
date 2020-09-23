@@ -13,19 +13,17 @@ from lib.builders import description_builder, tags_builder
 from lib.extractors import opgg_extractor
 from lib.managers import replay_api_manager, obs_manager, league_manager, upload_manager, programs_manager
 
-from dotenv import load_dotenv
 
 from lib.builders.title_builder import get_title
 from lib.managers.game_cfg_manager import enable_settings, disable_settings
-from lib.managers.league_manager import bugsplat_exists, kill_bugsplat
+from lib.managers.league_manager import bugsplat_exists, kill_bugsplat, start_game
 from lib.managers.replay_api_manager import get_player_position, PortNotFoundException
 from lib.utils import pretty_log
 
-load_dotenv()
+
 
 WAIT_TIME = 2
 SURREND_TIME = 15 * 60
-BAT_PATH = 'replay.bat'
 VIDEOS_PATH = 'D:\\LeagueReplays\\'
 
 
@@ -49,6 +47,8 @@ class GameCrashedException(Exception):
 
 
 def wait_for_game_launched():
+    print("[SPECTATOR] - Waiting for game to launch")
+
     while True:
         try:
             if replay_api_manager.game_launched():
@@ -91,14 +91,16 @@ def wait_seconds(WAIT_TIME):
 def find_and_launch_game(match):
     match_id = match.get('id')
     region = match.get('region')
+    encryption_key = match.get('encryption_key')
+    start_game(region, match_id, encryption_key)
 
-    replay_command = opgg_extractor.get_game_bat(match_id, region)
-    # replay_command = r.text
-
-    with open(BAT_PATH, 'w') as f:
-        f.write(replay_command)
-
-    subprocess.call([BAT_PATH], stdout=subprocess.DEVNULL)
+    # replay_command = opgg_extractor.get_game_bat(match_id, region)
+    # # replay_command = r.text
+    #
+    # with open(BAT_PATH, 'w') as f:
+    #     f.write(replay_command)
+    #
+    # subprocess.call([BAT_PATH], stdout=subprocess.DEVNULL)
 
 
 @pretty_log
@@ -128,14 +130,11 @@ def handle_game(match_info):
 
     wait_for_game_start()
     player_champion = match_info.get('player_champion')
-
-    match_info['skin_name'] = replay_api_manager.get_player_skin(player_champion)
-    match_info['runes'] = replay_api_manager.get_player_runes(player_champion)
-    match_info['summonerSpells'] = replay_api_manager.get_player_summoner_spells(player_champion)
     player_position = get_player_position(player_champion)
 
     league_manager.select_summoner(player_position)
     league_manager.enable_runes()
+
     wait_seconds(WAIT_TIME)
 
     league_manager.toggle_recording()
@@ -147,16 +146,20 @@ def handle_game(match_info):
     wait_seconds(WAIT_TIME)
 
     wait_finish()
-    match_info['items'] = replay_api_manager.get_player_items(player_champion)
-
+    player_data = replay_api_manager.get_players_data()
+    match_info['items'] = replay_api_manager.get_player_items(player_data)
+    match_info['skin_name'] = replay_api_manager.get_player_skin(player_data)
+    match_info['runes'] = replay_api_manager.get_player_runes(player_data)
+    match_info['summonerSpells'] = replay_api_manager.get_player_summoner_spells(player_data)
     league_manager.toggle_recording()
 
     close_programs()
 
 
 def close_programs():
-    obs_manager.close_obs()
-    league_manager.close_game()
+    programs_manager.close_program(obs_manager.OBS_EXE)
+    programs_manager.close_program(league_manager.LEAGUE_EXE)
+    programs_manager.close_program(league_manager.BUGSPLAT_EXE)
     disable_settings()
 
 
@@ -197,6 +200,7 @@ def spectate(match_data):
         print(f'"{summoner_name}" is not in game')
         return
     match_id = match.id
+    encryption_key = match.observer_key
 
     players_data = match_data.get('players_data')
 
@@ -223,16 +227,16 @@ def spectate(match_data):
         'rank': rank,
         'version': version,
         'id': match_id,
+        'encryption_key': encryption_key,
     }
 
     print(f"[SPECTATOR] - Spectating {get_title(match_info)}")
 
     try:
         handle_game(match_info)
-    except (subprocess.CalledProcessError, requests.exceptions.ConnectionError, GameCrashedException, PortNotFoundException) as e:
+    except (subprocess.CalledProcessError, requests.exceptions.ConnectionError, GameCrashedException, PortNotFoundException) as exception:
 
-        print(f'{e} was raised during the process')
-        kill_bugsplat()
+        print(f'{exception} was raised during the process')
         close_programs()
         wait_seconds(WAIT_TIME)
 

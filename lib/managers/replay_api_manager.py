@@ -92,7 +92,7 @@ def get_current_game_time():
     url = f'https://127.0.0.1:{port}/replay/playback'
     r = requests.get(url, verify=False)
     response_json = r.json()
-    print(response_json)
+    # print(response_json)
     t = response_json['time']
     # print(f'[REPLAY-API] - Getting Current Game Time: {t}')
     return t
@@ -116,23 +116,23 @@ def pause_game():
     return r.json()
 
 
-def get_player_skin(player_champion):
-    skin_name = get_player_data(player_champion).get('skinName')
+def get_player_skin(player_data):
+    skin_name = player_data.get('skinName')
     if not skin_name:
         skin_name = 'default'
     return skin_name
 
 
-def get_player_runes(player_champion):
-    runes = get_player_data(player_champion).get('runes')
+def get_player_runes(player_data):
+    runes = player_data.get('runes')
     player_runes = {}
     player_runes['keystone'] = runes.get('keystone').get('id')
     player_runes['secondaryRuneTree'] = runes.get('secondaryRuneTree').get('id')
     return player_runes
 
 
-def get_player_items(player_champion):
-    items = get_player_data(player_champion).get('items')
+def get_player_items(player_data):
+    items = player_data.get('items')
     items = sorted(items, key=lambda item: item.get('price'), reverse=True)
     player_items = []
     for item in items:
@@ -140,8 +140,8 @@ def get_player_items(player_champion):
     return player_items
 
 
-def get_player_summoner_spells(player_champion):
-    summoner_spells = get_player_data(player_champion).get('summonerSpells')
+def get_player_summoner_spells(player_data):
+    summoner_spells = player_data.get('summonerSpells')
     player_summoner_spells = []
     player_summoner_spells.append(summoner_spells.get('summonerSpellOne').get('displayName'))
     player_summoner_spells.append(summoner_spells.get('summonerSpellTwo').get('displayName'))

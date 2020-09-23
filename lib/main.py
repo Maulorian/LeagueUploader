@@ -1,6 +1,8 @@
 import os
 import time
 import cassiopeia
+from dotenv import load_dotenv
+load_dotenv()
 
 from lib.managers.player_finder_manager import find_ladder_player
 from lib.spectator import spectate

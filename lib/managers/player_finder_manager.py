@@ -7,7 +7,7 @@ from lib.extractors.porofessor_extractor import PorofessorNoResponseException
 REGIONS_TO_SEARCH = [Region.korea.value, Region.europe_west.value]
 # REGIONS_TO_SEARCH = [Region.europe_west.value, Region.korea.value]
 
-ROLE_INDEXES = ['Top', 'Jgl', 'Mid', 'Bot', 'Sup']
+ROLE_INDEXES = ['Top', 'Jungle', 'Mid', 'Bot', 'Support']
 interests = ['Samira', 'Vayne', 'Irelia', 'Fiora', 'Yasuo']
 
 
@@ -71,8 +71,8 @@ def find_ladder_player():
                 continue
 
             already_started = porofessor_match_data.get('already_started')
-            if already_started:
-                continue
+            # if already_started:
+            #     continue
 
             porofessor_players = porofessor_match_data.get('players')
 
