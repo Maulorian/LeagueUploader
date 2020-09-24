@@ -80,7 +80,7 @@ def toggle_recording():
 
 
 
-def bugsplat_exists():
+def bugsplat():
     return running(BUGSPLAT_EXE)
 
 

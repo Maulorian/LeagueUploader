@@ -1,10 +1,16 @@
+import pprint
 import subprocess
 import sys
 import time
 
 import requests
+from cassiopeia import get_items, Region
 from requests.packages import urllib3
 from urllib3.exceptions import InsecureRequestWarning
+
+GAME_START = 'GameStart'
+
+GAME_END = 'GameEnd'
 
 urllib3.disable_warnings(InsecureRequestWarning)
 
@@ -24,6 +30,7 @@ def get_league_port():
         if sub.isdigit():
             return int(sub)
     raise PortNotFoundException
+
 
 def game_launched():
     return get_league_port() is not None
@@ -92,7 +99,7 @@ def get_current_game_time():
     url = f'https://127.0.0.1:{port}/replay/playback'
     r = requests.get(url, verify=False)
     response_json = r.json()
-    # print(response_json)
+    print(response_json)
     t = response_json['time']
     # print(f'[REPLAY-API] - Getting Current Game Time: {t}')
     return t
@@ -106,12 +113,17 @@ def get_game_render_data():
     return r.json()
 
 
-def pause_game():
+def get_base_url():
     port = get_league_port()
+    return f'https://127.0.0.1:{port}'
+
+
+def pause_game():
     data = {
         'paused': True
     }
-    r = requests.post(f'https://127.0.0.1:{port}/replay/playback', json=data, verify=False)
+    url = f'{get_base_url()}/replay/playback'
+    r = requests.post(url, json=data, verify=False)
     print(r.json())
     return r.json()
 
@@ -131,13 +143,37 @@ def get_player_runes(player_data):
     return player_runes
 
 
+def game_finished() -> bool:
+    endpoint = '/liveclientdata/eventdata'
+    url = f'{get_base_url()}{endpoint}'
+    r = requests.get(url, verify=False)
+    print(r.json().get('Events'))
+    return r.json().get('Events')[-1].get('EventName') == GAME_END
+
+def game_started() -> bool:
+    endpoint = '/liveclientdata/eventdata'
+    url = f'{get_base_url()}{endpoint}'
+    r = requests.get(url, verify=False)
+    events = r.json().get('Events')
+    if len(events) == 0:
+        return False
+
+    return events[0].get('EventName') == GAME_START
+
 def get_player_items(player_data):
     items = player_data.get('items')
-    items = sorted(items, key=lambda item: item.get('price'), reverse=True)
-    player_items = []
+
+    items_data = get_items(region=Region.europe_west)
     for item in items:
-        player_items.append(item.get('itemID'))
-    return player_items
+        item_data = next(item_data for item_data in items_data if item_data.id == item.get('itemID'))
+        item['total_gold'] = item_data.gold.total
+
+    items = sorted(items, key=lambda item: item.get('total_gold'), reverse=True)
+    pp = pprint.PrettyPrinter(indent=2)
+    pp.pprint(items)
+    items = list(map(lambda item: item.get('itemID'), items))
+
+    return items
 
 
 def get_player_summoner_spells(player_data):

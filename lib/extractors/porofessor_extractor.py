@@ -34,6 +34,7 @@ def get_match_data(summoner_name, region):
     r = requests.get(full_url, headers=headers)
     html = r.text
     if NOT_IN_GAME in html:
+        print("Not in game")
         return
 
     if TRY_AGAIN_LATER in html:
@@ -71,15 +72,12 @@ def match_already_started(duration_tag):
 
 
 def get_duration(duration_string):
-    pattern = re.compile("^[0-9]{2}:[0-9]{2}$")
-    if not pattern.match(duration_string):
+    m = re.search('^\(([0-9]{2}):([0-9]{2})\)$', duration_string)
+    minutes = m.group(1)
+    seconds = m.group(2)
+    if not minutes:
         return
-
-    duration = duration_string.text
-    duration = duration.replace('(', '')
-    duration = duration.replace(')', '')
-    t = datetime.strptime(duration, "%M:%S")
-    duration = timedelta(minutes=t.minute, seconds=t.second)
+    duration = timedelta(minutes=int(minutes), seconds=int(seconds))
     return duration
 
 

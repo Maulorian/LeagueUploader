@@ -1,5 +1,9 @@
 import os
 from dotenv import load_dotenv
+
+from lib.managers import replay_api_manager
+from lib.managers.replay_api_manager import game_finished, game_started
+
 load_dotenv()
 import pprint
 import cassiopeia as cass
@@ -12,5 +16,4 @@ from lib.spectator import get_summoner_current_match, close_programs
 
 # pp = pprint.PrettyPrinter(indent=2)
 # cass.set_riot_api_key(os.getenv("RIOT_KEY"))
-
-close_programs()
+print(game_started())

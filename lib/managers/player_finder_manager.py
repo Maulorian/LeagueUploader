@@ -67,12 +67,13 @@ def find_ladder_player():
                 porofessor_match_data = porofessor_extractor.get_match_data(summoner_name, region)
             except PorofessorNoResponseException:
                 return
+
             if not porofessor_match_data:
                 continue
 
             already_started = porofessor_match_data.get('already_started')
-            # if already_started:
-            #     continue
+            if already_started:
+                continue
 
             porofessor_players = porofessor_match_data.get('players')
 

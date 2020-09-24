@@ -13,33 +13,24 @@ from lib.builders import description_builder, tags_builder
 from lib.extractors import opgg_extractor
 from lib.managers import replay_api_manager, obs_manager, league_manager, upload_manager, programs_manager
 
-
 from lib.builders.title_builder import get_title
 from lib.managers.game_cfg_manager import enable_settings, disable_settings
-from lib.managers.league_manager import bugsplat_exists, kill_bugsplat, start_game
-from lib.managers.replay_api_manager import get_player_position, PortNotFoundException
+from lib.managers.league_manager import bugsplat, kill_bugsplat, start_game
+from lib.managers.replay_api_manager import get_player_position, PortNotFoundException, game_finished, game_started
 from lib.utils import pretty_log
 
-
-
 WAIT_TIME = 2
-SURREND_TIME = 15 * 60
 VIDEOS_PATH = 'D:\\LeagueReplays\\'
 
 
 def wait_finish():
-    current_time = replay_api_manager.get_current_game_time()
+    print("[SPECTATOR] - Waiting for game to finish..")
     while True:
-        if bugsplat_exists():
+        if bugsplat():
             raise GameCrashedException
-        new_time = replay_api_manager.get_current_game_time()
-        # paused = replay_api_manager.is_game_paused()
-        # if not paused and new_time == current_time and new_time >= SURREND_TIME:
-        if new_time == current_time:
-            print("[SPECTATOR] - Game ended")
-            return
-        current_time = new_time
-        time.sleep(0.5)
+        if game_finished():
+            print("[SPECTATOR] - Game Finished")
+            break
 
 
 class GameCrashedException(Exception):
@@ -47,30 +38,34 @@ class GameCrashedException(Exception):
 
 
 def wait_for_game_launched():
-    print("[SPECTATOR] - Waiting for game to launch")
+    print("[SPECTATOR] - Waiting for game to launch..")
 
     while True:
         try:
             if replay_api_manager.game_launched():
                 print("[SPECTATOR] - Game has launched")
                 break
-            if bugsplat_exists():
+            if bugsplat():
                 raise GameCrashedException
         except (requests.exceptions.ConnectionError, subprocess.CalledProcessError):
-            print("[SPECTATOR] - Game not yet launched")
+            # print("[SPECTATOR] - Game not yet launched")
             time.sleep(1)
 
 
 def wait_for_game_start():
+    print("[SPECTATOR] - Waiting for game to start..")
+
     while True:
-        current_time = replay_api_manager.get_current_game_time()
-        if current_time <= 5:
-            wait_seconds(WAIT_TIME)
-            continue
-        if bugsplat_exists():
+        # current_time = replay_api_manager.get_current_game_time()
+        # if current_time <= 5:
+        #     wait_seconds(WAIT_TIME)
+        #     continue
+        if game_started():
+            print("[SPECTATOR] - Game has started")
+            wait_seconds(10)
+            break
+        if bugsplat():
             raise GameCrashedException
-        print("[SPECTATOR] - Match has started")
-        break
 
 
 def get_current_game_version():
@@ -94,14 +89,6 @@ def find_and_launch_game(match):
     encryption_key = match.get('encryption_key')
     start_game(region, match_id, encryption_key)
 
-    # replay_command = opgg_extractor.get_game_bat(match_id, region)
-    # # replay_command = r.text
-    #
-    # with open(BAT_PATH, 'w') as f:
-    #     f.write(replay_command)
-    #
-    # subprocess.call([BAT_PATH], stdout=subprocess.DEVNULL)
-
 
 @pretty_log
 def get_video_path():
@@ -116,7 +103,7 @@ def get_video_path():
 
 def handle_game(match_info):
     obs_manager.start()
-    # programs_manager.close_discord()
+
     enable_settings()
 
     time.sleep(WAIT_TIME)
@@ -146,7 +133,7 @@ def handle_game(match_info):
     wait_seconds(WAIT_TIME)
 
     wait_finish()
-    player_data = replay_api_manager.get_players_data()
+    player_data = replay_api_manager.get_player_data(player_champion)
     match_info['items'] = replay_api_manager.get_player_items(player_data)
     match_info['skin_name'] = replay_api_manager.get_player_skin(player_data)
     match_info['runes'] = replay_api_manager.get_player_runes(player_data)
@@ -234,7 +221,8 @@ def spectate(match_data):
 
     try:
         handle_game(match_info)
-    except (subprocess.CalledProcessError, requests.exceptions.ConnectionError, GameCrashedException, PortNotFoundException) as exception:
+    except (subprocess.CalledProcessError, requests.exceptions.ConnectionError, GameCrashedException,
+            PortNotFoundException) as exception:
 
         print(f'{exception} was raised during the process')
         close_programs()

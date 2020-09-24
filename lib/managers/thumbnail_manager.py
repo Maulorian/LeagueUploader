@@ -1,4 +1,5 @@
 import json
+import logging
 from io import BytesIO
 
 import PIL
@@ -6,6 +7,8 @@ import cassiopeia
 import requests
 from cassiopeia import get_champion, Region
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
+
+import lib.managers.upload_manager as upload_manager
 
 FLAGS_PATH = '../assets/flags/'
 TIER_PATH = '../assets/tiers/'
@@ -21,9 +24,11 @@ DRAGON_URL = 'https://ddragon.leagueoflegends.com/cdn/img/'
 
 STROKE_WIDTH = 3
 ALPHA_VALUE = 200
+logger = logging.getLogger(upload_manager.LOG_NAME)
+
 
 def save_champion_splashart(champion, skinName):
-    print(f'[{__name__.upper()}] - Retrieving splash art for {champion} skin {skinName}')
+    logger.info(f'[{__name__.upper()}] - Retrieving splash art for {champion} skin {skinName}')
 
     champion = get_champion(champion)
     skins = champion.skins
@@ -198,7 +203,6 @@ def get_runes_image(info_area, match_info):
 def get_item_image(item_id):
     items = cassiopeia.get_items(region=Region.europe_west)
     item = next(item for item in items if item.id == item_id)
-    print(item.id, item.name, item.gold.total)
 
     if item.gold.total < 1100:
         return
@@ -288,11 +292,11 @@ def add_details_to_splashart(match_info):
 
 
 # for spell in cassiopeia.get_summoner_spells(region=Region.europe_west):
-#     print(spell.name)
+#     logger.info(spell.name)
 #     with open(SUMMONERS_PATH + spell.image.full, 'wb') as f:
 #         spell.image.image.save(f)
 # for rune in cassiopeia.get_runes(region=Region.europe_west):
-#     print(rune.name)
+#     logger.info(rune.name)
 #     with open(f'{RUNES_PATH}{rune.path.name}.png', 'wb') as f:
 #         rune.image.image.save(f)
 def get_rune_image(rune_id):

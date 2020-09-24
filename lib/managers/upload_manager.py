@@ -2,6 +2,7 @@ import json
 import logging
 import os
 import re
+import sys
 import traceback
 
 from googleapiclient.discovery import build
@@ -14,7 +15,9 @@ from youtube_uploader_selenium import YouTubeUploader
 
 from lib.builders import description_builder, tags_builder
 from lib.builders.title_builder import get_title
-from lib.managers.thumbnail_manager import save_champion_splashart, get_flag_image, add_details_to_splashart
+LOG_NAME = "upload_logger"
+
+import lib.managers.thumbnail_manager as thumbnail_manager
 
 VIDEOS_PATH = 'D:\\LeagueReplays\\'
 METADATA_PATH = '../json/metadata.json'
@@ -28,17 +31,23 @@ PRIVACY_STATUS = "private"
 TO_UPLOAD_PATH = '..\\json\\to_upload.json'
 TO_UPLOAD_BACKUP_PATH = '..\\json\\to_upload_backup.json'
 
-
-# def camel_to_snake(name):
-#     name = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
-#     return re.sub('([a-z0-9])([A-Z])', r'\1_\2', name).lower()
+LOG_FILENAME = "queue_consummer.log"
 
 
-# def rename_video_path(video_path, title):
-#     parts = os.path.splitext(video_path)
-#     extension = parts[1]
-#     reformated_title = camel_to_snake(title.replace(' ', ''))
-#     return reformated_title + extension
+def setup_custom_logger(name):
+    formatter = logging.Formatter(fmt='%(asctime)s %(levelname)-8s %(message)s',
+                                  datefmt='%Y-%m-%d %H:%M:%S')
+    handler = logging.FileHandler(LOG_FILENAME, 'w', 'utf-8')
+    handler.setFormatter(formatter)
+    # screen_handler = logging.StreamHandler(stream=sys.stdout)
+    # screen_handler.setFormatter(formatter)
+    logger = logging.getLogger(name)
+    logger.setLevel(logging.DEBUG)
+    logger.addHandler(handler)
+    # logger.addHandler(screen_handler)
+    return logger
+
+logger = setup_custom_logger(LOG_NAME)
 
 
 def add_video_to_queue(metadata):
@@ -70,14 +79,14 @@ def upload_video(video_metadata):
         update_video(video_id, video_metadata)
         os.remove(path)
         print(f"{path} Removed!")
-    except Exception:
-        traceback.print_exc()
+    except Exception as e:
+        logger.exception(e)
         delete_video(video_id)
         raise VideoUploadException
 
 
 def delete_video(video_id):
-    print(f'[UPLOAD MANAGER] - Deleting video {video_id}')
+    logger.info(f'[UPLOAD MANAGER] - Deleting video {video_id}')
     youtube = get_authenticated_service()
     request = youtube.videos().delete(
         id=video_id
@@ -89,55 +98,64 @@ class VideoUploadException(Exception):
     pass
 
 def empty_queue():
-    print('Emptying queue')
+    logger.info('Emptying queue')
     while True:
         to_upload_json = open(TO_UPLOAD_PATH, "r")
         to_upload = json.load(to_upload_json)
         if len(to_upload) == 0:
-            print('uploads are empty')
+            logger.info('uploads are empty')
             to_upload_json.close()
             break
         video_metadata = to_upload.pop(0)
         to_upload_json.close()
         try:
             upload_video(video_metadata)
-        except VideoUploadException:
+        except VideoUploadException as e:
+            logger.info(e)
             break
+        except FileNotFoundError as e:
+            logger.info(e)
+            pass
 
         to_upload_json = open(TO_UPLOAD_PATH, "w")
         json.dump(to_upload, to_upload_json, indent=2)
         to_upload_json.close()
 
 
-def upload_default_video(video_path):
-    print(f'[UPLOAD MANAGER] - Upload video_path={video_path}, size={os.path.getsize(video_path)}kb')
+def upload_default_video(metadata):
+    title = metadata['title']
+    description = metadata['description']
+
+    video_path = metadata['video_path']
+
+    logger.info(f'[UPLOAD MANAGER] - Uploading {title}')
 
     metadata = {
-        'title': "title",
-        'description': "description"
+        'title': title,
+        'description': description
     }
     with open(METADATA_PATH, 'w') as file:
         file.write(json.dumps(metadata))
 
     uploader = YouTubeUploader(video_path, METADATA_PATH)
     was_video_uploaded, video_id = uploader.upload()
-    print('[UPLOAD MANAGER] - Video Uploaded')
+    logger.info('[UPLOAD MANAGER] - Video Uploaded')
 
     return video_id
 
 
 def update_video(video_id, metadata):
-    print(f'[UPLOAD MANAGER] - Updating Video {video_id}')
+    logger.info(f'[UPLOAD MANAGER] - Updating Video {video_id}')
     player_champion = metadata['player_champion']
     skin_name = metadata['skin_name']
     description = metadata['description']
     tags = metadata['tags']
     title = metadata['title']
     region = metadata['region']
-    print(f'[UPLOAD MANAGER] - Setting title to "{title}"')
+    logger.info(f'[UPLOAD MANAGER] - Setting title to "{title}"')
 
-    save_champion_splashart(player_champion, skin_name)
-    add_details_to_splashart(metadata)
+    thumbnail_manager.save_champion_splashart(player_champion, skin_name)
+    thumbnail_manager.add_details_to_splashart(metadata)
     os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
     youtube = get_authenticated_service()
 
@@ -147,9 +165,7 @@ def update_video(video_id, metadata):
             "id": video_id,
             "snippet": {
                 "defaultLanguage": "en",
-                "description": description,
                 "tags": tags,
-                "title": title,
                 "categoryId": "20",
 
             },
@@ -158,7 +174,7 @@ def update_video(video_id, metadata):
             }
         }
     )
-    print('[UPLOAD MANAGER] - Updating Metadata')
+    logger.info('[UPLOAD MANAGER] - Updating Metadata')
 
     request.execute()
 
@@ -167,7 +183,7 @@ def update_video(video_id, metadata):
         id=video_id,
         rating="like"
     )
-    print('[UPLOAD MANAGER] - Liking Video')
+    logger.info('[UPLOAD MANAGER] - Liking Video')
 
     like_update.execute()
 
@@ -176,10 +192,10 @@ def update_video(video_id, metadata):
         videoId=video_id,
         media_body=MediaFileUpload('splash_art.jpeg')
     )
-    print('[UPLOAD MANAGER] - Setting Thumbnail')
+    logger.info('[UPLOAD MANAGER] - Setting Thumbnail')
 
     thumbnail_update.execute()
-    print('[UPLOAD MANAGER] - Video Updated')
+    logger.info('[UPLOAD MANAGER] - Video Updated')
 
 
 
