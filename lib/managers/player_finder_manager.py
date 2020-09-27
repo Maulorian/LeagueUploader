@@ -20,9 +20,7 @@ def get_final_players_data(porofessor_players, opgg_players_data):
     return players_data
 
 
-
-
-def find_ladder_player():
+def find_ladder_player(check_start=True):
     already_searched_players = set()
     for region in REGIONS_TO_SEARCH:
         # while in_challenger_league:
@@ -55,9 +53,9 @@ def find_ladder_player():
                 already_searched_players.add(player)
 
             player_data = opgg_players_data.get(summoner_name)
-            rank = player_data.get('rank')
-            if 'Challenger' not in rank:
-                print(f'{summoner_name} is only {rank}')
+            tier = player_data.get('tier')
+            if tier != 'Challenger':
+                print(f'{summoner_name} is only {tier}')
                 break
 
             if opgg_match_data.get('match_type') != Queue.ranked_solo_fives:
@@ -72,7 +70,7 @@ def find_ladder_player():
                 continue
 
             already_started = porofessor_match_data.get('already_started')
-            if already_started:
+            if check_start and already_started:
                 continue
 
             porofessor_players = porofessor_match_data.get('players')

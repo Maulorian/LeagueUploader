@@ -10,14 +10,14 @@ from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
 import lib.managers.upload_manager as upload_manager
 
-FLAGS_PATH = '../assets/flags/'
-TIER_PATH = '../assets/tiers/'
-SUMMONERS_PATH = '../assets/summoners/'
-RUNES_PATH = '../assets/runes/'
+FLAGS_PATH = upload_manager.PROJECT_PATH + '/assets/flags/'
+TIER_PATH = upload_manager.PROJECT_PATH + '/assets/tiers/'
+SUMMONERS_PATH = upload_manager.PROJECT_PATH + '/assets/summoners/'
+RUNES_PATH = upload_manager.PROJECT_PATH + '/assets/runes/'
 TREES_PATH = 'trees/'
-ITEMS_PATH = '../assets/items/'
+ITEMS_PATH = upload_manager.PROJECT_PATH + '/assets/items/'
 SPLASH_PATH = 'splash_art.jpeg'
-FONT_PATH = '../fonts/thumbnail_font.ttf'
+FONT_PATH = upload_manager.PROJECT_PATH + '/fonts/thumbnail_font.ttf'
 
 RUNES_URL = 'http://ddragon.leagueoflegends.com/cdn/10.19.1/data/en_US/runesReforged.json'
 DRAGON_URL = 'https://ddragon.leagueoflegends.com/cdn/img/'
@@ -27,10 +27,10 @@ ALPHA_VALUE = 200
 logger = logging.getLogger(upload_manager.LOG_NAME)
 
 
-def save_champion_splashart(champion, skinName):
+def save_champion_splashart(champion, skinName, region):
     logger.info(f'[{__name__.upper()}] - Retrieving splash art for {champion} skin {skinName}')
 
-    champion = get_champion(champion)
+    champion = get_champion(champion, region)
     skins = champion.skins
     skin = next(item for item in skins if item.name == skinName)
     with open(SPLASH_PATH, 'wb') as f:
@@ -203,11 +203,6 @@ def get_runes_image(info_area, match_info):
 def get_item_image(item_id):
     items = cassiopeia.get_items(region=Region.europe_west)
     item = next(item for item in items if item.id == item_id)
-
-    if item.gold.total < 1100:
-        return
-
-
     return item.image.image
 
 

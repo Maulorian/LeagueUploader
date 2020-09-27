@@ -11,3 +11,4 @@ def pretty_log(function):
             print(f'[{file_name.upper()}] - {function.__name__}() = {result}')
         return result
     return wrapper
+

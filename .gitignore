@@ -1,6 +1,6 @@
 venv
 .idea
-lib/tests/
+lib/test/
 json/
 bats/
 credential_sample.json

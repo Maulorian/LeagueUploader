@@ -1,4 +1,5 @@
 import datetime
+import re
 
 import requests
 import io
@@ -6,7 +7,7 @@ from bs4 import BeautifulSoup
 
 from urllib.parse import unquote
 
-from cassiopeia import Region, Queue
+from cassiopeia import Region, Queue, Side
 from datetime import datetime
 
 from lib.utils import pretty_log
@@ -46,6 +47,7 @@ def spectate_tab(region):
         players_dict[player] = True
     return players_dict.keys()
 
+
 @pretty_log
 def get_ladder(region):
     region_url = REGION_URLS[region]
@@ -65,6 +67,7 @@ def get_ladder(region):
         players_dict[player] = True
     return players_dict.keys()
 
+
 def extract_names(soup):
     challengers = soup.findAll('a')
     challengers = list(map(lambda link: link['href'], challengers))
@@ -75,8 +78,8 @@ def extract_names(soup):
     challengers = list(map(lambda challenger: challenger.strip(), challengers))
     return challengers
 
-def get_match_data(player_name, region):
 
+def get_match_data(player_name, region):
     region_url = REGION_URLS[region]
     url = SCHEMA + region_url + SPECTATE_PLAYER_PAGE + player_name
 
@@ -101,11 +104,6 @@ def get_match_data(player_name, region):
 
     return match_data
 
-def get_game_bat(match_id, region):
-    region_url = REGION_URLS[region]
-    url = SCHEMA + region_url + SPECTATE_MATCH + str(match_id)
-    r = requests.get(url)
-    return r.text
 
 def get_player_page(region):
     region_url = REGION_URLS[region]
@@ -118,6 +116,7 @@ def extract_players_data(soup):
     players_html = soup.find_all("tr")
     players_html = list(
         filter(lambda tr: tr.get('id') is not None and 'SpectateBigListRow' in tr.get('id'), players_html))
+    side = Side.blue
     for i in range(len(players_html)):
         # with open(f'player.html', 'w') as f:
         #     f.write(str(players_html[i]))
@@ -127,9 +126,21 @@ def extract_players_data(soup):
         player_data['champion'] = player_html.find('a').get('title')
         player_name = player_html.find('a', {'class': "SummonerName"}).text.strip()
         player_ranking_information = player_html.find('div', {'class': 'TierRank'}).text.strip()
-        player_data['rank'] = player_ranking_information
+        tier, lp = get_tier_lp_from_rank(player_ranking_information)
 
+        player_data['tier'] = tier
+        player_data['lp'] = lp
+        player_data['side'] = side
+        if i == 4:
+            side = Side.red
         players[player_name] = player_data
 
     return players
 
+
+def get_tier_lp_from_rank(rank):
+    p = re.compile("([a-zA-Z]*) \\(([0-9]*) LP\\)")
+    result = p.search(rank)
+    tier = result.group(1)
+    lp = result.group(2)
+    return tier, lp

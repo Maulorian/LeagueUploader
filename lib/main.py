@@ -3,6 +3,7 @@ import time
 import traceback
 
 import cassiopeia
+from cassiopeia import datastores
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -17,6 +18,9 @@ while True:
         match_data = find_ladder_player()
         if match_data:
             spectate(match_data)
+    except datastores.riotapi.common.APIRequestError:
+        print("Reset API Key")
+        break
     except Exception as e:
         traceback.print_exc()
 

@@ -2,19 +2,26 @@ import os
 import subprocess
 
 import pywinauto
-from cassiopeia import Region
+from cassiopeia import Region, Side
 from pywinauto.application import Application
 import pywinauto.keyboard as keyboard
 
 from lib.managers.programs_manager import running
 from lib.utils import pretty_log
 
+
+RECORDING_COMMAND = '{F10 down}{F10 up}'
+FOG_KEYBINDS = {
+    Side.blue: 'F1',
+    Side.red: 'F2',
+}
 LEAGUE_EXE = 'League of Legends.exe'
 LEAGUE_PATH = 'C:\\Riot Games\\League of Legends\\'
 GAME = 'Game\\'
 BUGSPLAT_EXE = 'BsSndRpt.exe'
 KEYBINDS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0']
 LOCALE = 'en_GB'
+# LOCALE = 'ko_KR'
 import os
 
 
@@ -37,16 +44,12 @@ REGION_IDS = {
     Region.europe_west.value: 'EUW1'
 }
 
-
+@pretty_log
 def start_game(region, match_id, encryption_key):
     region_id = REGION_IDS[region]
     game_arguments = f'spectator spectator.{region_id.lower()}.lol.riotgames.com:80 {encryption_key} {match_id} {region_id}'
     # print(game_arguments)
     with cd(LEAGUE_PATH + GAME):
-        print(os.getcwd())
-        # subprocess.run([EXE, game_arguments, f"-Locale={LOCALE}", "-GameBaseDir=.."], shell=True, stdout=subprocess.DEVNULL)
-        # subprocess.Popen(start_recording_command, shell=True, stdout=subprocess.DEVNULL)
-        # start_command =
         FNULL = open(os.devnull, 'w')
         subprocess.Popen([LEAGUE_EXE, game_arguments, f"-Locale={LOCALE}", "-GameBaseDir=.."], stdout=FNULL,
                          stderr=subprocess.STDOUT)
@@ -63,19 +66,24 @@ def select_summoner(position):
     app_dialog.set_focus()
 
     keybind = KEYBINDS[position]
+    select_summoner_command = f'{{{keybind} down}}{{{keybind} up}}' * 2
+
     print(f"[LEAGUE MANAGER] - Selecting summoner in position {position} with keybind {keybind}")
 
-    command = f'{{{keybind} down}}{{{keybind} up}}' * 2
     mouse.move(coords=(x, y))
 
-    app_dialog.type_keys(command)
+    app_dialog.type_keys(select_summoner_command)
 
-    # keyboard.send_keys(command)
+def adjust_fog(side):
+    keybind = FOG_KEYBINDS[side]
+    select_fog_command = f'{{{keybind} down}}{{{keybind} up}}'
 
+    keyboard.send_keys(select_fog_command)
 
 def toggle_recording():
     print('[LEAGUE MANAGER] - Toggling Recording')
-    keyboard.send_keys('{F10 down}{F10 up}')
+    keyboard.send_keys(RECORDING_COMMAND)
+
 
 
 

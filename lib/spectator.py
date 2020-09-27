@@ -1,8 +1,10 @@
+import ntpath
 import os
 import re
 import subprocess
 import time
 import traceback
+from datetime import datetime
 
 import cassiopeia as cass
 import datapipelines
@@ -17,10 +19,10 @@ from lib.builders.title_builder import get_title
 from lib.managers.game_cfg_manager import enable_settings, disable_settings
 from lib.managers.league_manager import bugsplat, kill_bugsplat, start_game
 from lib.managers.replay_api_manager import get_player_position, PortNotFoundException, game_finished, game_started
+from lib.managers.upload_manager import VIDEOS_PATH
 from lib.utils import pretty_log
 
 WAIT_TIME = 2
-VIDEOS_PATH = 'D:\\LeagueReplays\\'
 
 
 def wait_finish():
@@ -31,6 +33,7 @@ def wait_finish():
         if game_finished():
             print("[SPECTATOR] - Game Finished")
             break
+        time.sleep(1)
 
 
 class GameCrashedException(Exception):
@@ -47,6 +50,7 @@ def wait_for_game_launched():
                 break
             if bugsplat():
                 raise GameCrashedException
+
         except (requests.exceptions.ConnectionError, subprocess.CalledProcessError):
             # print("[SPECTATOR] - Game not yet launched")
             time.sleep(1)
@@ -55,18 +59,18 @@ def wait_for_game_launched():
 def wait_for_game_start():
     print("[SPECTATOR] - Waiting for game to start..")
 
+    start = time.time()
     while True:
-        # current_time = replay_api_manager.get_current_game_time()
-        # if current_time <= 5:
-        #     wait_seconds(WAIT_TIME)
-        #     continue
+        time_passed = time.time() - start
+        print(time_passed)
+        if time_passed > (5 * 60):
+            raise GameCrashedException
         if game_started():
             print("[SPECTATOR] - Game has started")
-            wait_seconds(10)
             break
         if bugsplat():
             raise GameCrashedException
-
+        wait_seconds(WAIT_TIME)
 
 def get_current_game_version():
     r = requests.get('https://raw.githubusercontent.com/CommunityDragon/Data/master/patches.json')
@@ -74,19 +78,15 @@ def get_current_game_version():
     return version
 
 
-# def handle(summoner_name):
-#     pass
-
-
 def wait_seconds(WAIT_TIME):
     # print(f"[SPECTATOR] - Waiting {WAIT_TIME}")
     time.sleep(WAIT_TIME)
 
 
-def find_and_launch_game(match):
-    match_id = match.get('id')
-    region = match.get('region')
-    encryption_key = match.get('encryption_key')
+def find_and_launch_game(match_data):
+    match_id = match_data.get('match_id')
+    region = match_data.get('region')
+    encryption_key = match_data.get('encryption_key')
     start_game(region, match_id, encryption_key)
 
 
@@ -97,18 +97,28 @@ def get_video_path():
     video_paths = sorted(Path(VIDEOS_PATH).iterdir(), key=os.path.getmtime)
 
     video_path = video_paths[-1]
+    head, tail = ntpath.split(video_path)
+    return tail
 
-    return str(video_path)
+
+def wait_summoners_spawned():
+    print("[SPECTATOR] - Waiting for Summoners to spawn..")
+
+    while True:
+        current_time = replay_api_manager.get_current_game_time()
+        if current_time > 5:
+            print("[SPECTATOR] - Summoners spawned")
+            break
 
 
-def handle_game(match_info):
+def handle_game(match_data):
     obs_manager.start()
 
     enable_settings()
 
     time.sleep(WAIT_TIME)
 
-    find_and_launch_game(match_info)
+    find_and_launch_game(match_data)
     wait_for_game_launched()
     time.sleep(WAIT_TIME)
 
@@ -116,29 +126,31 @@ def handle_game(match_info):
     wait_seconds(WAIT_TIME)
 
     wait_for_game_start()
-    player_champion = match_info.get('player_champion')
+
+    wait_summoners_spawned()
+
+    player_champion = match_data.get('player_champion')
     player_position = get_player_position(player_champion)
 
     league_manager.select_summoner(player_position)
     league_manager.enable_runes()
-
-    wait_seconds(WAIT_TIME)
-
     league_manager.toggle_recording()
+    side = match_data.get('side')
+    league_manager.adjust_fog(side)
 
     wait_seconds(WAIT_TIME)
-
-    match_info['path'] = get_video_path()
-
-    wait_seconds(WAIT_TIME)
-
+    match_data['path'] = get_video_path()
+    print(f'Saving game to {match_data["path"]}')
     wait_finish()
-    player_data = replay_api_manager.get_player_data(player_champion)
-    match_info['items'] = replay_api_manager.get_player_items(player_data)
-    match_info['skin_name'] = replay_api_manager.get_player_skin(player_data)
-    match_info['runes'] = replay_api_manager.get_player_runes(player_data)
-    match_info['summonerSpells'] = replay_api_manager.get_player_summoner_spells(player_data)
     league_manager.toggle_recording()
+
+    player_data = replay_api_manager.get_player_data(player_champion)
+    match_data['items'] = replay_api_manager.get_player_items(player_data)
+    match_data['skin_name'] = replay_api_manager.get_player_skin(player_data)
+    match_data['runes'] = replay_api_manager.get_player_runes(player_data)
+    match_data['summonerSpells'] = replay_api_manager.get_player_summoner_spells(player_data)
+    summoner_name = match_data.get('summoner_name')
+    match_data['player_kill_timestamps'] = replay_api_manager.get_player_kill_timestamps(summoner_name)
 
     close_programs()
 
@@ -150,28 +162,21 @@ def close_programs():
     disable_settings()
 
 
-def handle_postgame(match_info):
+def handle_postgame(match_data):
     wait_seconds(WAIT_TIME * 5)
-    upload_manager.add_video_to_queue(match_info)
+    upload_manager.add_video_to_queue(match_data)
 
 
 def get_summoner_current_match(summoner):
-    tries = 3
-    while tries > 0:
-        try:
-            match = summoner.current_match
-            return match
-        except datapipelines.common.NotFoundError:
-            tries -= 1
-            time.sleep(1)
+    try:
+        match = summoner.current_match
+        return match
+    except datapipelines.common.NotFoundError:
+        return
 
 
-def get_tier_lp_from_rank(rank):
-    p = re.compile("([a-zA-Z]*) \\(([0-9]*) LP\\)")
-    result = p.search(rank)
-    tier = result.group(1)
-    lp = result.group(2)
-    return tier, lp
+
+
 
 
 def spectate(match_data):
@@ -201,10 +206,11 @@ def spectate(match_data):
 
     role = player_data.get('role')
     rank = player_data.get('rank')
-    tier, lp = get_tier_lp_from_rank(rank)
+    tier = player_data.get('tier')
+    lp = player_data.get('lp')
     version = get_current_game_version()
-
-    match_info = {
+    side = player_data.get('side')
+    match_data = {
         'players_data': players_data,
         'player_champion': player_champion,
         'role': role,
@@ -213,14 +219,15 @@ def spectate(match_data):
         'region': region,
         'rank': rank,
         'version': version,
-        'id': match_id,
+        'match_id': match_id,
         'encryption_key': encryption_key,
+        'side': side
     }
 
-    print(f"[SPECTATOR] - Spectating {get_title(match_info)}")
+    print(f"[SPECTATOR] - Spectating {get_title(match_data)}")
 
     try:
-        handle_game(match_info)
+        handle_game(match_data)
     except (subprocess.CalledProcessError, requests.exceptions.ConnectionError, GameCrashedException,
             PortNotFoundException) as exception:
 
@@ -228,21 +235,21 @@ def spectate(match_data):
         close_programs()
         wait_seconds(WAIT_TIME)
 
-        if 'path' in match_info:
-            os.remove(match_info['path'])
-            print(f"{match_info['path']} Removed!")
+        if 'path' in match_data:
+            os.remove(match_data['path'])
+            print(f"{match_data['path']} Removed!")
         return
 
     metadata = {
-        'description': description_builder.get_description(match_info),
-        'tags': tags_builder.get_tags(match_info),
-        'title': get_title(match_info),
+        'description': description_builder.get_description(match_data),
+        'tags': tags_builder.get_tags(match_data),
+        'title': get_title(match_data),
         'player_champion': player_champion,
-        'skin_name': match_info['skin_name'],
-        'items': match_info['items'],
-        'runes': match_info['runes'],
-        'summonerSpells': match_info['summonerSpells'],
-        'path': match_info['path'],
+        'skin_name': match_data['skin_name'],
+        'items': match_data['items'],
+        'runes': match_data['runes'],
+        'summonerSpells': match_data['summonerSpells'],
+        'path': match_data['path'],
         'region': region,
         'tier': tier,
         'lp': lp,

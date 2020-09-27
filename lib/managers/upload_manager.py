@@ -1,10 +1,8 @@
 import json
 import logging
 import os
-import re
-import sys
-import traceback
 
+from googleapiclient import errors
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 from oauth2client import client  # Added
@@ -12,24 +10,23 @@ from oauth2client import tools  # Added
 from oauth2client.client import Storage
 from oauth2client.file import Storage  # Added
 from youtube_uploader_selenium import YouTubeUploader
-
-from lib.builders import description_builder, tags_builder
-from lib.builders.title_builder import get_title
+PROJECT_PATH = 'C:\\Users\\Alex\\PycharmProjects\\LeagueUploader\\'
 LOG_NAME = "upload_logger"
 
 import lib.managers.thumbnail_manager as thumbnail_manager
 
+
+
 VIDEOS_PATH = 'D:\\LeagueReplays\\'
-METADATA_PATH = '../json/metadata.json'
+METADATA_PATH = PROJECT_PATH + 'json/metadata.json'
 api_service_name = "youtube"
 api_version = "v3"
-client_secrets_file = "../json/client_secret.json"
+client_secrets_file = PROJECT_PATH + "json/client_secret.json"
 scopes = ["https://www.googleapis.com/auth/youtube.force-ssl"]
 
 PRIVACY_STATUS = "private"
-
-TO_UPLOAD_PATH = '..\\json\\to_upload.json'
-TO_UPLOAD_BACKUP_PATH = '..\\json\\to_upload_backup.json'
+TO_UPLOAD_PATH = PROJECT_PATH + 'json\\to_upload.json'
+TO_UPLOAD_BACKUP_PATH = PROJECT_PATH + 'json\\to_upload_backup.json'
 
 LOG_FILENAME = "queue_consummer.log"
 
@@ -46,6 +43,7 @@ def setup_custom_logger(name):
     logger.addHandler(handler)
     # logger.addHandler(screen_handler)
     return logger
+
 
 logger = setup_custom_logger(LOG_NAME)
 
@@ -73,12 +71,18 @@ def add_video_to_queue(metadata):
 
 
 def upload_video(video_metadata):
-    path = video_metadata['path']
-    video_id = upload_default_video(video_metadata['path'])
+
+    path = VIDEOS_PATH + video_metadata['path']
+    if not os.path.exists(path):
+        raise FileNotFoundError
+    video_id = upload_default_video(video_metadata)
+
     try:
+
         update_video(video_id, video_metadata)
         os.remove(path)
         print(f"{path} Removed!")
+
     except Exception as e:
         logger.exception(e)
         delete_video(video_id)
@@ -97,6 +101,7 @@ def delete_video(video_id):
 class VideoUploadException(Exception):
     pass
 
+
 def empty_queue():
     logger.info('Emptying queue')
     while True:
@@ -114,9 +119,11 @@ def empty_queue():
             logger.info(e)
             break
         except FileNotFoundError as e:
-            logger.info(e)
+            logger.info("File not found, removing this match")
             pass
-
+        except Exception as e:
+            logger.info(e)
+            break
         to_upload_json = open(TO_UPLOAD_PATH, "w")
         json.dump(to_upload, to_upload_json, indent=2)
         to_upload_json.close()
@@ -126,7 +133,7 @@ def upload_default_video(metadata):
     title = metadata['title']
     description = metadata['description']
 
-    video_path = metadata['video_path']
+    path = VIDEOS_PATH + metadata['path']
 
     logger.info(f'[UPLOAD MANAGER] - Uploading {title}')
 
@@ -137,7 +144,7 @@ def upload_default_video(metadata):
     with open(METADATA_PATH, 'w') as file:
         file.write(json.dumps(metadata))
 
-    uploader = YouTubeUploader(video_path, METADATA_PATH)
+    uploader = YouTubeUploader(path, METADATA_PATH)
     was_video_uploaded, video_id = uploader.upload()
     logger.info('[UPLOAD MANAGER] - Video Uploaded')
 
@@ -154,8 +161,9 @@ def update_video(video_id, metadata):
     region = metadata['region']
     logger.info(f'[UPLOAD MANAGER] - Setting title to "{title}"')
 
-    thumbnail_manager.save_champion_splashart(player_champion, skin_name)
+    thumbnail_manager.save_champion_splashart(player_champion, skin_name, region)
     thumbnail_manager.add_details_to_splashart(metadata)
+
     os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
     youtube = get_authenticated_service()
 
@@ -167,7 +175,8 @@ def update_video(video_id, metadata):
                 "defaultLanguage": "en",
                 "tags": tags,
                 "categoryId": "20",
-
+                "title": title,
+                'description': description
             },
             "status": {
                 "privacyStatus": PRIVACY_STATUS
@@ -196,7 +205,6 @@ def update_video(video_id, metadata):
 
     thumbnail_update.execute()
     logger.info('[UPLOAD MANAGER] - Video Updated')
-
 
 
 def get_authenticated_service():  # Modified

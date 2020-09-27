@@ -1,3 +1,4 @@
+import datetime
 import pprint
 import subprocess
 import sys
@@ -38,9 +39,16 @@ def game_launched():
 
 def get_players_data():
     port = get_league_port()
-    r = requests.get(f'https://127.0.0.1:{port}/liveclientdata/playerlist', verify=False)
+    r = requests.get(f'{get_base_url()}/liveclientdata/playerlist', verify=False)
     champions = r.json()
     return champions
+
+def get_active_player_data():
+    port = get_league_port()
+    r = requests.get(f'{get_base_url()}/liveclientdata/activeplayername', verify=False)
+    player_data = r.json()
+    print(player_data)
+
 
 
 def get_player_position(champion):
@@ -58,29 +66,26 @@ def get_player_data(champion):
 
 def is_game_paused():
     port = get_league_port()
-    r = requests.get(f'https://127.0.0.1:{port}/replay/playback', verify=False)
+    r = requests.get(f'{get_base_url()}/replay/playback', verify=False)
     paused = r.json()['paused']
     print(f'[REPLAY-API] - Checking if Game is paused : {{paused={paused}}}')
     return paused
 
 
 def enable_recording_settings():
-    retry = 3
-    while retry > 0:
-        retry -= 1
-        try:
-            print(f'[REPLAY-API] - Enabling Recording Settings {{retry={retry}}}')
-            render = {
-                "interfaceScoreboard": True,
-                "interfaceTimeline": False,
-                "interfaceChat": False,
-            }
-            port = get_league_port()
+    try:
+        print(f'[REPLAY-API] - Enabling Recording Settings')
+        render = {
+            "interfaceScoreboard": True,
+            "interfaceTimeline": False,
+            "interfaceChat": False,
+        }
+        port = get_league_port()
 
-            requests.post(f'https://127.0.0.1:{port}/replay/render', verify=False, json=render)
-            return
-        except requests.exceptions.ConnectionError:
-            time.sleep(1)
+        requests.post(f'{get_base_url()}/replay/render', verify=False, json=render)
+    except requests.exceptions.ConnectionError:
+        time.sleep(1)
+
 
 
 def disable_recording_settings():
@@ -91,12 +96,11 @@ def disable_recording_settings():
         "interfaceChat": True,
     }
     port = get_league_port()
-    r = requests.post(f'https://127.0.0.1:{port}/replay/render', verify=False, json=render)
+    r = requests.post(f'{get_base_url()}/replay/render', verify=False, json=render)
 
 
 def get_current_game_time():
-    port = get_league_port()
-    url = f'https://127.0.0.1:{port}/replay/playback'
+    url = f'{get_base_url()}/replay/playback'
     r = requests.get(url, verify=False)
     response_json = r.json()
     print(response_json)
@@ -106,8 +110,7 @@ def get_current_game_time():
 
 
 def get_game_render_data():
-    port = get_league_port()
-    url = f'https://127.0.0.1:{port}/replay/render'
+    url = f'{get_base_url()}/replay/render'
     r = requests.get(url, verify=False)
     print(r.json())
     return r.json()
@@ -143,22 +146,25 @@ def get_player_runes(player_data):
     return player_runes
 
 
-def game_finished() -> bool:
+def get_events():
     endpoint = '/liveclientdata/eventdata'
     url = f'{get_base_url()}{endpoint}'
     r = requests.get(url, verify=False)
-    print(r.json().get('Events'))
-    return r.json().get('Events')[-1].get('EventName') == GAME_END
+    return r.json().get('Events')
+
+
+def game_finished() -> bool:
+    events = get_events()
+    return events[-1].get('EventName') == GAME_END
+
 
 def game_started() -> bool:
-    endpoint = '/liveclientdata/eventdata'
-    url = f'{get_base_url()}{endpoint}'
-    r = requests.get(url, verify=False)
-    events = r.json().get('Events')
+    events = get_events()
     if len(events) == 0:
         return False
 
     return events[0].get('EventName') == GAME_START
+
 
 def get_player_items(player_data):
     items = player_data.get('items')
@@ -168,7 +174,8 @@ def get_player_items(player_data):
         item_data = next(item_data for item_data in items_data if item_data.id == item.get('itemID'))
         item['total_gold'] = item_data.gold.total
 
-    items = sorted(items, key=lambda item: item.get('total_gold'), reverse=True)
+    items.sort(key=lambda item: item.get('total_gold'), reverse=True)
+    items = [item for item in items if item.get('total_gold') >= 1100]
     pp = pprint.PrettyPrinter(indent=2)
     pp.pprint(items)
     items = list(map(lambda item: item.get('itemID'), items))
@@ -181,4 +188,21 @@ def get_player_summoner_spells(player_data):
     player_summoner_spells = []
     player_summoner_spells.append(summoner_spells.get('summonerSpellOne').get('displayName'))
     player_summoner_spells.append(summoner_spells.get('summonerSpellTwo').get('displayName'))
+    for i, spell in enumerate(player_summoner_spells):
+        if spell == 'Challenging Smite':
+            player_summoner_spells[i] = 'Smite'
     return player_summoner_spells
+
+
+def get_formated_timestamp(total_seconds):
+    minutes = (total_seconds % 3600) // 60
+    seconds = total_seconds % 60
+    return f'{str(round(minutes)).zfill(2)}:{str(round(seconds)).zfill(2)}'
+
+def get_player_kill_timestamps(summoner_name):
+    events = get_events()
+    events = [event for event in events if (event.get('EventName') == 'ChampionKill' and event.get('KillerName') == summoner_name)]
+    champions = get_players_data()
+    times_stamps = [{'victim': next(item.get("championName") for item in champions if item.get('summonerName') == event.get('VictimName')), 'time': get_formated_timestamp(event.get('EventTime') - 10)} for event in events]
+
+    return times_stamps
