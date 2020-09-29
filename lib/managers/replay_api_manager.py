@@ -189,7 +189,7 @@ def get_player_summoner_spells(player_data):
     player_summoner_spells.append(summoner_spells.get('summonerSpellOne').get('displayName'))
     player_summoner_spells.append(summoner_spells.get('summonerSpellTwo').get('displayName'))
     for i, spell in enumerate(player_summoner_spells):
-        if spell == 'Challenging Smite':
+        if 'Smite' in spell:
             player_summoner_spells[i] = 'Smite'
     return player_summoner_spells
 

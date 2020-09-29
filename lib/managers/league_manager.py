@@ -7,8 +7,7 @@ from pywinauto.application import Application
 import pywinauto.keyboard as keyboard
 
 from lib.managers.programs_manager import running
-from lib.utils import pretty_log
-
+from lib.utils import pretty_log, cd
 
 RECORDING_COMMAND = '{F10 down}{F10 up}'
 FOG_KEYBINDS = {
@@ -25,18 +24,7 @@ LOCALE = 'en_GB'
 import os
 
 
-class cd:
-    """Context manager for changing the current working directory"""
 
-    def __init__(self, newPath):
-        self.newPath = os.path.expanduser(newPath)
-
-    def __enter__(self):
-        self.savedPath = os.getcwd()
-        os.chdir(self.newPath)
-
-    def __exit__(self, etype, value, traceback):
-        os.chdir(self.savedPath)
 
 
 REGION_IDS = {

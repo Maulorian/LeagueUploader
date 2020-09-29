@@ -1,4 +1,4 @@
-TITLE_CANVAS = '{player_champion} {role} vs {enemy_champion} - {summoner_name} {region} {rank} ' \
+TITLE_CANVAS = '{player_champion} {role} vs {enemy_champion} - {name} - {region} {tier} ({lp} LP) ' \
                'Patch {version}'
 
 
@@ -9,18 +9,28 @@ def manual_replace(s, char, index):
 def get_title(match_info):
     player_champion = match_info.get('player_champion')
     role = match_info.get('role')
-    summoner_name = match_info.get('summoner_name')
-    first_letter = summoner_name[0].upper()
-    summoner_name = manual_replace(summoner_name, first_letter, 0)
+    name = match_info.get('summoner_name')
+
+    pro_player_info = match_info.get('pro_player_info')
+    if pro_player_info:
+        name = ""
+        if pro_player_info['team']:
+            name += f'{pro_player_info["team"]} '
+        name += pro_player_info['name']
+
+    first_letter = name[0].upper()
+    name = manual_replace(name, first_letter, 0)
     enemy_champion = match_info.get('enemy_champion')
     region = match_info.get('region')
-    rank = match_info.get('rank')
+    tier = match_info.get('tier')
+    lp = match_info.get('lp')
     version = match_info.get('version')
 
     return TITLE_CANVAS.format(player_champion=player_champion,
                                role=role,
-                               summoner_name=summoner_name,
+                               name=name,
                                enemy_champion=enemy_champion,
                                region=region,
-                               rank=rank,
+                               tier=tier,
+                               lp=lp,
                                version=version)

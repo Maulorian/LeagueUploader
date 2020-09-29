@@ -21,6 +21,7 @@ BASE_URL = ' http://porofessor.gg/'
 SPECTATE_PLAYER_PAGE = 'partial/live-partial/'
 NOT_IN_GAME = 'The summoner is not in-game, please retry later. The game must be on the loading screen or it must have started.'
 
+
 class PorofessorNoResponseException(Exception):
     pass
 
@@ -31,7 +32,7 @@ def get_match_data(summoner_name, region):
 
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.77 Safari/537.36"}
-    r = requests.get(full_url, headers=headers)
+    r = requests.get(full_url, headers=headers, timeout=60)
     html = r.text
     if NOT_IN_GAME in html:
         print("Not in game")
@@ -95,7 +96,7 @@ def get_summoners_name_from_html(soup):
 #
 #     headers = {
 #         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.77 Safari/537.36"}
-#     r = requests.get(full_url, headers=headers)
+#     r = requests.get(full_url, headers=headers, timeout=60)
 #     html = r.text
 #     with io.open(f'{__name__.upper()}.html', "w", encoding="utf-8") as f:
 #         f.write(html)

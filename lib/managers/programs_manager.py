@@ -1,11 +1,13 @@
+import os
 import subprocess
 
 import psutil
 
-from lib.utils import pretty_log
+from lib.utils import pretty_log, cd
 
 DISCORD_EXE = 'Discord.exe'
-
+CHROME_EXE = 'chrome.exe'
+CHROME_DIR = "C:\Program Files (x86)\Google\Chrome\Application"
 
 def running(processName):
     '''
@@ -28,3 +30,11 @@ def close_program(exe):
     close_command = f'TASKKILL /F /IM \"{exe}\"'
     print(close_command)
     subprocess.Popen(close_command, shell=True)
+
+@pretty_log
+def open_program(exe, dir):
+    if running(exe):
+        return
+    with cd(dir):
+        FNULL = open(os.devnull, 'w')
+        subprocess.Popen([exe], stdout=FNULL, stderr=subprocess.STDOUT)

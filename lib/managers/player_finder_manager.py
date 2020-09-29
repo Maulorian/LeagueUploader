@@ -3,18 +3,20 @@ from cassiopeia import Region, Queue, get_summoner, get_current_match
 
 from lib.extractors import opgg_extractor, porofessor_extractor
 from lib.extractors.porofessor_extractor import PorofessorNoResponseException
+from lib.utils import pretty_print
 
 REGIONS_TO_SEARCH = [Region.korea.value, Region.europe_west.value]
 # REGIONS_TO_SEARCH = [Region.europe_west.value, Region.korea.value]
 
 ROLE_INDEXES = ['Top', 'Jungle', 'Mid', 'Bot', 'Support']
-interests = ['Samira', 'Vayne', 'Irelia', 'Fiora', 'Yasuo']
+interests = ['Samira', 'Vayne', 'Irelia', 'Yasuo']
 
 
 def get_final_players_data(porofessor_players, opgg_players_data):
     players_data = {}
     for player_name in porofessor_players:
         if player_name not in opgg_players_data.keys():
+            print(f'{player_name} not in {pretty_print(opgg_players_data)}')
             return
         players_data[player_name] = opgg_players_data[player_name]
     return players_data
@@ -58,7 +60,7 @@ def find_ladder_player(check_start=True):
                 print(f'{summoner_name} is only {tier}')
                 break
 
-            if opgg_match_data.get('match_type') != Queue.ranked_solo_fives:
+            if not opgg_match_data.get('is_ranked'):
                 print(f"Not a ranked")
                 continue
             try:
@@ -94,3 +96,31 @@ def find_ladder_player(check_start=True):
 
             match_data = {'summoner_name': summoner_name, 'players_data': players_data, 'region': region}
             return match_data
+def get_match_data(summoner_name, region):
+    opgg_match_data = opgg_extractor.get_match_data(summoner_name, region)
+
+    if not opgg_match_data:
+        return
+    opgg_players_data = opgg_match_data.get('players_data')
+
+    try:
+        porofessor_match_data = porofessor_extractor.get_match_data(summoner_name, region)
+    except PorofessorNoResponseException:
+        return
+
+    if not porofessor_match_data:
+        return
+    porofessor_players = porofessor_match_data.get('players')
+
+
+
+    players_data = get_final_players_data(porofessor_players, opgg_players_data)
+
+    for player_name, player_data in players_data.items():
+        print(player_name, player_data)
+        player_position = list(players_data.keys()).index(player_name)
+        role = ROLE_INDEXES[player_position % 5]
+        player_data['player_position'] = player_position
+        player_data['role'] = role
+
+    return {'summoner_name': summoner_name, 'players_data': players_data, 'region': region}

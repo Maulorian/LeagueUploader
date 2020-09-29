@@ -1,6 +1,7 @@
 import ntpath
 import os
 import re
+import shutil
 import subprocess
 import time
 import traceback
@@ -13,11 +14,13 @@ from cassiopeia import get_current_match
 
 from lib.builders import description_builder, tags_builder
 from lib.extractors import opgg_extractor
+from lib.extractors.opgg_extractor import get_pro_players_info
 from lib.managers import replay_api_manager, obs_manager, league_manager, upload_manager, programs_manager
 
 from lib.builders.title_builder import get_title
 from lib.managers.game_cfg_manager import enable_settings, disable_settings
 from lib.managers.league_manager import bugsplat, kill_bugsplat, start_game
+from lib.managers.player_finder_manager import get_match_data
 from lib.managers.replay_api_manager import get_player_position, PortNotFoundException, game_finished, game_started
 from lib.managers.upload_manager import VIDEOS_PATH
 from lib.utils import pretty_log
@@ -155,16 +158,32 @@ def handle_game(match_data):
     close_programs()
 
 
+def open_programs():
+    programs_manager.open_program(programs_manager.CHROME_EXE)
+    programs_manager.open_program(programs_manager.DISCORD_EXE)
+
+
 def close_programs():
     programs_manager.close_program(obs_manager.OBS_EXE)
     programs_manager.close_program(league_manager.LEAGUE_EXE)
     programs_manager.close_program(league_manager.BUGSPLAT_EXE)
+    programs_manager.close_program(programs_manager.CHROME_EXE)
+    programs_manager.close_program(programs_manager.DISCORD_EXE)
     disable_settings()
+
+
+class DiskFullException(Exception):
+    def __init__(self, disk_space):
+        self.disk_space = disk_space
 
 
 def handle_postgame(match_data):
     wait_seconds(WAIT_TIME * 5)
     upload_manager.add_video_to_queue(match_data)
+    total_space, used_space, free_space = shutil.disk_usage("D:")
+    total_space, used_space, free_space = (total_space // (2 ** 30)), (used_space // (2 ** 30)), (free_space // (2 ** 30))
+    if free_space < 1:
+        raise DiskFullException(free_space)
 
 
 def get_summoner_current_match(summoner):
@@ -180,6 +199,7 @@ def get_summoner_current_match(summoner):
 
 
 def spectate(match_data):
+
     close_programs()
 
     region = match_data.get('region')
@@ -205,7 +225,6 @@ def spectate(match_data):
     enemy_champion = players_data[enemy_summoner_name].get('champion')
 
     role = player_data.get('role')
-    rank = player_data.get('rank')
     tier = player_data.get('tier')
     lp = player_data.get('lp')
     version = get_current_game_version()
@@ -217,12 +236,21 @@ def spectate(match_data):
         'summoner_name': summoner_name,
         'enemy_champion': enemy_champion,
         'region': region,
-        'rank': rank,
+        'tier': tier,
+        'lp': lp,
         'version': version,
         'match_id': match_id,
         'encryption_key': encryption_key,
         'side': side
     }
+    pro_players_info = get_pro_players_info(region)
+
+    if summoner_name in pro_players_info:
+        pro_player_info = pro_players_info[summoner_name]
+
+        print(f"[SPECTATOR] - Found concordance: {summoner_name} -> {pro_player_info['name']}")
+
+        match_data['pro_player_info'] = pro_player_info
 
     print(f"[SPECTATOR] - Spectating {get_title(match_data)}")
 
@@ -236,7 +264,7 @@ def spectate(match_data):
         wait_seconds(WAIT_TIME)
 
         if 'path' in match_data:
-            os.remove(match_data['path'])
+            os.remove(VIDEOS_PATH + match_data['path'])
             print(f"{match_data['path']} Removed!")
         return
 

@@ -13,6 +13,11 @@ def get_tags(match_info):
     enemy_champion = enemy_champion.lower()
     role = role.lower()
     summoner_name = summoner_name.lower()
+
+    pro_player_info = match_info.get('pro_player_info')
+    if pro_player_info:
+        summoner_name = pro_player_info['name']
+
     tags = []
     tags.append(f'{player_champion} {CHALLENGER_TAG}')
     tags.append(f'{player_champion} {role} ')

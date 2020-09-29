@@ -18,7 +18,7 @@ import lib.managers.thumbnail_manager as thumbnail_manager
 
 
 VIDEOS_PATH = 'D:\\LeagueReplays\\'
-METADATA_PATH = PROJECT_PATH + 'json/metadata.json'
+match_data_PATH = PROJECT_PATH + 'json/match_data.json'
 api_service_name = "youtube"
 api_version = "v3"
 client_secrets_file = PROJECT_PATH + "json/client_secret.json"
@@ -48,12 +48,12 @@ def setup_custom_logger(name):
 logger = setup_custom_logger(LOG_NAME)
 
 
-def add_video_to_queue(metadata):
+def add_video_to_queue(match_data):
     print(f'[UPLOAD MANAGER] - Adding Video To Queue')
 
     to_upload_json = open(TO_UPLOAD_PATH, "r")
     to_upload = json.load(to_upload_json)
-    to_upload.append(metadata)
+    to_upload.append(match_data)
     to_upload_json.close()
 
     to_upload_json = open(TO_UPLOAD_PATH, "w")
@@ -62,7 +62,7 @@ def add_video_to_queue(metadata):
 
     to_upload_json = open(TO_UPLOAD_BACKUP_PATH, "r")
     to_upload = json.load(to_upload_json)
-    to_upload.append(metadata)
+    to_upload.append(match_data)
     to_upload_json.close()
 
     to_upload_json = open(TO_UPLOAD_BACKUP_PATH, "w")
@@ -70,19 +70,14 @@ def add_video_to_queue(metadata):
     to_upload_json.close()
 
 
-def upload_video(video_metadata):
-
-    path = VIDEOS_PATH + video_metadata['path']
-    if not os.path.exists(path):
-        raise FileNotFoundError
-    video_id = upload_default_video(video_metadata)
-
+def upload_video(video_match_data):
+    path = VIDEOS_PATH + video_match_data['path']
+    video_id = None
     try:
-
-        update_video(video_id, video_metadata)
+        video_id = upload_default_video(video_match_data)
+        update_video(video_id, video_match_data)
         os.remove(path)
-        print(f"{path} Removed!")
-
+        logger.info(f"{path} Removed!")
     except Exception as e:
         logger.exception(e)
         delete_video(video_id)
@@ -107,62 +102,62 @@ def empty_queue():
     while True:
         to_upload_json = open(TO_UPLOAD_PATH, "r")
         to_upload = json.load(to_upload_json)
-        if len(to_upload) == 0:
-            logger.info('uploads are empty')
-            to_upload_json.close()
-            break
-        video_metadata = to_upload.pop(0)
         to_upload_json.close()
         try:
-            upload_video(video_metadata)
-        except VideoUploadException as e:
-            logger.info(e)
+            match_data = to_upload.pop(0)
+        except IndexError:
+            logger.info('uploads are empty')
             break
-        except FileNotFoundError as e:
-            logger.info("File not found, removing this match")
-            pass
-        except Exception as e:
-            logger.info(e)
-            break
+
+
+        path = VIDEOS_PATH + match_data['path']
+        if not os.path.exists(path):
+            logger.info(f"{match_data['title']} - {path} File not found")
+        else:
+            try:
+                upload_video(match_data)
+            except VideoUploadException as e:
+                logger.info(e)
+                break
+
         to_upload_json = open(TO_UPLOAD_PATH, "w")
         json.dump(to_upload, to_upload_json, indent=2)
         to_upload_json.close()
 
 
-def upload_default_video(metadata):
-    title = metadata['title']
-    description = metadata['description']
+def upload_default_video(match_data):
+    title = match_data['title']
+    description = match_data['description']
 
-    path = VIDEOS_PATH + metadata['path']
+    path = VIDEOS_PATH + match_data['path']
 
     logger.info(f'[UPLOAD MANAGER] - Uploading {title}')
 
-    metadata = {
+    match_data = {
         'title': title,
         'description': description
     }
-    with open(METADATA_PATH, 'w') as file:
-        file.write(json.dumps(metadata))
+    with open(match_data_PATH, 'w') as file:
+        file.write(json.dumps(match_data))
 
-    uploader = YouTubeUploader(path, METADATA_PATH)
+    uploader = YouTubeUploader(path, match_data_PATH)
     was_video_uploaded, video_id = uploader.upload()
     logger.info('[UPLOAD MANAGER] - Video Uploaded')
 
     return video_id
 
 
-def update_video(video_id, metadata):
+def update_video(video_id, match_data):
     logger.info(f'[UPLOAD MANAGER] - Updating Video {video_id}')
-    player_champion = metadata['player_champion']
-    skin_name = metadata['skin_name']
-    description = metadata['description']
-    tags = metadata['tags']
-    title = metadata['title']
-    region = metadata['region']
+    player_champion = match_data['player_champion']
+    skin_name = match_data['skin_name']
+    description = match_data['description']
+    tags = match_data['tags']
+    title = match_data['title']
     logger.info(f'[UPLOAD MANAGER] - Setting title to "{title}"')
 
-    thumbnail_manager.save_champion_splashart(player_champion, skin_name, region)
-    thumbnail_manager.add_details_to_splashart(metadata)
+    thumbnail_manager.save_champion_splashart(player_champion, skin_name)
+    thumbnail_manager.add_details_to_splashart(match_data)
 
     os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
     youtube = get_authenticated_service()
@@ -183,7 +178,7 @@ def update_video(video_id, metadata):
             }
         }
     )
-    logger.info('[UPLOAD MANAGER] - Updating Metadata')
+    logger.info('[UPLOAD MANAGER] - Updating match_data')
 
     request.execute()
 

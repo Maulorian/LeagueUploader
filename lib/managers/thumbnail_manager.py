@@ -27,12 +27,12 @@ ALPHA_VALUE = 200
 logger = logging.getLogger(upload_manager.LOG_NAME)
 
 
-def save_champion_splashart(champion, skinName, region):
-    logger.info(f'[{__name__.upper()}] - Retrieving splash art for {champion} skin {skinName}')
+def save_champion_splashart(champion, skin_name):
+    logger.info(f'[{__name__.upper()}] - Retrieving splash art for {champion} skin {skin_name}')
 
-    champion = get_champion(champion, region)
+    champion = get_champion(champion, Region.europe_west)
     skins = champion.skins
-    skin = next(item for item in skins if item.name == skinName)
+    skin = next(skin_data for skin_data in skins if skin_data.name == skin_name)
     with open(SPLASH_PATH, 'wb') as f:
         skin.splash.save(f)
 
@@ -132,7 +132,7 @@ def get_lp_image(info_area, lp):
 
 def get_summoner_spell(summoner_name):
     summoner_spells = cassiopeia.get_summoner_spells(region=Region.europe_west)
-    summoner_spell = next(summoner for summoner in summoner_spells if summoner.name == summoner_name)
+    summoner_spell = next(summoner for summoner in summoner_spells if summoner.name in summoner_name)
     return summoner_spell.image.image
 
 
