@@ -7,7 +7,12 @@ from lib.utils import pretty_log, cd
 
 DISCORD_EXE = 'Discord.exe'
 CHROME_EXE = 'chrome.exe'
-CHROME_DIR = "C:\Program Files (x86)\Google\Chrome\Application"
+
+DIRECTORIES = {
+    CHROME_EXE: "C:\\Program Files (x86)\\Google\\Chrome\\Application",
+    DISCORD_EXE: "C:\\Users\\Alex\\AppData\\Local\\Discord\\app-0.0.307"
+}
+
 
 def running(processName):
     '''
@@ -32,9 +37,10 @@ def close_program(exe):
     subprocess.Popen(close_command, shell=True)
 
 @pretty_log
-def open_program(exe, dir):
+def open_program(exe):
     if running(exe):
         return
-    with cd(dir):
+    directory = DIRECTORIES[exe]
+    with cd(directory):
         FNULL = open(os.devnull, 'w')
         subprocess.Popen([exe], stdout=FNULL, stderr=subprocess.STDOUT)

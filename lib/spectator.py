@@ -21,7 +21,8 @@ from lib.builders.title_builder import get_title
 from lib.managers.game_cfg_manager import enable_settings, disable_settings
 from lib.managers.league_manager import bugsplat, kill_bugsplat, start_game
 from lib.managers.player_finder_manager import get_match_data
-from lib.managers.replay_api_manager import get_player_position, PortNotFoundException, game_finished, game_started
+from lib.managers.replay_api_manager import get_player_position, PortNotFoundException, game_finished, game_started, \
+    get_current_game_time, game_launched
 from lib.managers.upload_manager import VIDEOS_PATH
 from lib.utils import pretty_log
 
@@ -30,10 +31,14 @@ WAIT_TIME = 2
 
 def wait_finish():
     print("[SPECTATOR] - Waiting for game to finish..")
+    current_time = get_current_game_time()
     while True:
+        new_time = get_current_game_time()
+        if new_time == current_time:
+            raise GameCrashedException
         if bugsplat():
             raise GameCrashedException
-        if game_finished():
+        if game_finished() and new_time >= 15 * 60:
             print("[SPECTATOR] - Game Finished")
             break
         time.sleep(1)
@@ -46,9 +51,14 @@ class GameCrashedException(Exception):
 def wait_for_game_launched():
     print("[SPECTATOR] - Waiting for game to launch..")
 
+    start = time.time()
     while True:
+        time_passed = time.time() - start
+        print(time_passed)
+        if time_passed > (5 * 60):
+            raise GameCrashedException
         try:
-            if replay_api_manager.game_launched():
+            if game_launched():
                 print("[SPECTATOR] - Game has launched")
                 break
             if bugsplat():
@@ -59,8 +69,8 @@ def wait_for_game_launched():
             time.sleep(1)
 
 
-def wait_for_game_start():
-    print("[SPECTATOR] - Waiting for game to start..")
+def wait_for_game_loaded():
+    print("[SPECTATOR] - Waiting for game to load..")
 
     start = time.time()
     while True:
@@ -69,6 +79,26 @@ def wait_for_game_start():
         if time_passed > (5 * 60):
             raise GameCrashedException
         if game_started():
+            print("[SPECTATOR] - Game has loaded")
+            break
+        if bugsplat():
+            raise GameCrashedException
+        wait_seconds(WAIT_TIME)
+
+
+def wait_for_game_start():
+    print("[SPECTATOR] - Waiting for game to start..")
+
+    start = time.time()
+    start_time = get_current_game_time()
+
+    while True:
+        time_passed = time.time() - start
+        print(time_passed)
+        if time_passed > (5 * 60):
+            raise GameCrashedException
+        game_time = get_current_game_time()
+        if game_time > start_time:
             print("[SPECTATOR] - Game has started")
             break
         if bugsplat():
@@ -125,10 +155,14 @@ def handle_game(match_data):
     wait_for_game_launched()
     time.sleep(WAIT_TIME)
 
-    replay_api_manager.enable_recording_settings()
     wait_seconds(WAIT_TIME)
 
+    wait_for_game_loaded()
+    replay_api_manager.enable_recording_settings()
+
     wait_for_game_start()
+
+    league_manager.toggle_recording()
 
     wait_summoners_spawned()
 
@@ -137,7 +171,6 @@ def handle_game(match_data):
 
     league_manager.select_summoner(player_position)
     league_manager.enable_runes()
-    league_manager.toggle_recording()
     side = match_data.get('side')
     league_manager.adjust_fog(side)
 
@@ -156,7 +189,7 @@ def handle_game(match_data):
     match_data['player_kill_timestamps'] = replay_api_manager.get_player_kill_timestamps(summoner_name)
 
     close_programs()
-
+    open_programs()
 
 def open_programs():
     programs_manager.open_program(programs_manager.CHROME_EXE)
@@ -167,8 +200,8 @@ def close_programs():
     programs_manager.close_program(obs_manager.OBS_EXE)
     programs_manager.close_program(league_manager.LEAGUE_EXE)
     programs_manager.close_program(league_manager.BUGSPLAT_EXE)
-    programs_manager.close_program(programs_manager.CHROME_EXE)
-    programs_manager.close_program(programs_manager.DISCORD_EXE)
+    # programs_manager.close_program(programs_manager.CHROME_EXE)
+    # programs_manager.close_program(programs_manager.DISCORD_EXE)
     disable_settings()
 
 
@@ -261,6 +294,7 @@ def spectate(match_data):
 
         print(f'{exception} was raised during the process')
         close_programs()
+        open_programs()
         wait_seconds(WAIT_TIME)
 
         if 'path' in match_data:

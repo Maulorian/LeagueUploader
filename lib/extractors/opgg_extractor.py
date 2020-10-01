@@ -43,29 +43,17 @@ def spectate_tab(region):
 
     r = requests.get(spectate_tab, timeout=60)
     html = r.text
-    soup = BeautifulSoup(html, "html.parser")
-    players = extract_names(soup)
-    return players
+    return extract_names(html)
 
 
 @pretty_log
 def get_ladder(region):
     region_url = REGION_URLS[region]
     ladder_url = SCHEMA + region_url + LADDER
-    url = ladder_url
-    # print(f'[{__name__.upper()}] - Getting ladder in first page')
-
-    r = requests.get(url, timeout=60)
+    r = requests.get(ladder_url, timeout=60)
     html = r.text
-    # with io.open('opgg_response.html', "w", encoding="utf-8") as f:
-    #     f.write(html)
 
-    soup = BeautifulSoup(html, "html.parser")
-    players = extract_names(soup)
-    players_dict = {}
-    for player in players:
-        players_dict[player] = True
-    return players_dict.keys()
+    return extract_names(html)
 
 
 def extract_pro_player_names(html):
@@ -99,7 +87,9 @@ def get_pro_players_info(region):
     players_name = extract_pro_player_names(html)
     return players_name
 
-def extract_names(soup):
+
+def extract_names(html):
+    soup = BeautifulSoup(html, "html.parser")
     challengers = soup.findAll('a')
     challengers = list(map(lambda link: link['href'], challengers))
     challengers = list(filter(lambda href: USERNAME_URL in href, challengers))
@@ -107,7 +97,7 @@ def extract_names(soup):
     challengers = list(map(lambda challenger: challenger.replace('+', ' '), challengers))
     challengers = list(map(lambda challenger: unquote(challenger), challengers))
     challengers = list(map(lambda challenger: challenger.strip(), challengers))
-    return challengers
+    return list(dict.fromkeys(challengers))
 
 
 def get_match_data(player_name, region):

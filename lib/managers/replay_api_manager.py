@@ -38,13 +38,11 @@ def game_launched():
 
 
 def get_players_data():
-    port = get_league_port()
     r = requests.get(f'{get_base_url()}/liveclientdata/playerlist', verify=False)
     champions = r.json()
     return champions
 
 def get_active_player_data():
-    port = get_league_port()
     r = requests.get(f'{get_base_url()}/liveclientdata/activeplayername', verify=False)
     player_data = r.json()
     print(player_data)
@@ -65,7 +63,6 @@ def get_player_data(champion):
 
 
 def is_game_paused():
-    port = get_league_port()
     r = requests.get(f'{get_base_url()}/replay/playback', verify=False)
     paused = r.json()['paused']
     print(f'[REPLAY-API] - Checking if Game is paused : {{paused={paused}}}')
@@ -80,9 +77,8 @@ def enable_recording_settings():
             "interfaceTimeline": False,
             "interfaceChat": False,
         }
-        port = get_league_port()
 
-        requests.post(f'{get_base_url()}/replay/render', verify=False, json=render)
+        requests.post(f'{get_base_url()}/replay/render', verify=False, json=render, timeout=60)
     except requests.exceptions.ConnectionError:
         time.sleep(1)
 
@@ -95,8 +91,7 @@ def disable_recording_settings():
         "interfaceTimeline": False,
         "interfaceChat": True,
     }
-    port = get_league_port()
-    r = requests.post(f'{get_base_url()}/replay/render', verify=False, json=render)
+    r = requests.post(f'{get_base_url()}/replay/render', verify=False, json=render, timeout=60)
 
 
 def get_current_game_time():
@@ -111,7 +106,7 @@ def get_current_game_time():
 
 def get_game_render_data():
     url = f'{get_base_url()}/replay/render'
-    r = requests.get(url, verify=False)
+    r = requests.get(url, verify=False, timeout=60)
     print(r.json())
     return r.json()
 
@@ -126,7 +121,7 @@ def pause_game():
         'paused': True
     }
     url = f'{get_base_url()}/replay/playback'
-    r = requests.post(url, json=data, verify=False)
+    r = requests.post(url, json=data, verify=False, timeout=60)
     print(r.json())
     return r.json()
 
@@ -149,17 +144,23 @@ def get_player_runes(player_data):
 def get_events():
     endpoint = '/liveclientdata/eventdata'
     url = f'{get_base_url()}{endpoint}'
-    r = requests.get(url, verify=False)
+    r = requests.get(url, verify=False, timeout=60)
+
     return r.json().get('Events')
 
 
 def game_finished() -> bool:
     events = get_events()
-    return events[-1].get('EventName') == GAME_END
+    last_event = events[-1]
+    # print(last_event)
+    return last_event.get('EventName') == GAME_END
 
 
 def game_started() -> bool:
     events = get_events()
+    if events is None:
+        return False
+
     if len(events) == 0:
         return False
 
@@ -177,7 +178,7 @@ def get_player_items(player_data):
     items.sort(key=lambda item: item.get('total_gold'), reverse=True)
     items = [item for item in items if item.get('total_gold') >= 1100]
     pp = pprint.PrettyPrinter(indent=2)
-    pp.pprint(items)
+    # pp.pprint(items)
     items = list(map(lambda item: item.get('itemID'), items))
 
     return items

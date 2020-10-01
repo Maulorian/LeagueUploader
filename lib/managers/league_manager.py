@@ -70,6 +70,11 @@ def adjust_fog(side):
 
 def toggle_recording():
     print('[LEAGUE MANAGER] - Toggling Recording')
+    app = Application().connect(path=LEAGUE_PATH + GAME + LEAGUE_EXE)
+    app_dialog = app.top_window()
+    app_dialog.set_focus()
+    # app_dialog.type_keys(RECORDING_COMMAND)
+
     keyboard.send_keys(RECORDING_COMMAND)
 
 
