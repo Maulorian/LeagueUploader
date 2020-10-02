@@ -9,6 +9,8 @@ from cassiopeia import get_items, Region
 from requests.packages import urllib3
 from urllib3.exceptions import InsecureRequestWarning
 
+from lib.utils import pretty_print
+
 GAME_START = 'GameStart'
 
 GAME_END = 'GameEnd'
@@ -42,11 +44,11 @@ def get_players_data():
     champions = r.json()
     return champions
 
+
 def get_active_player_data():
-    r = requests.get(f'{get_base_url()}/liveclientdata/activeplayername', verify=False)
+    r = requests.get(f'{get_base_url()}/liveclientdata/activeplayer', verify=False)
     player_data = r.json()
     print(player_data)
-
 
 
 def get_player_position(champion):
@@ -81,7 +83,6 @@ def enable_recording_settings():
         requests.post(f'{get_base_url()}/replay/render', verify=False, json=render, timeout=60)
     except requests.exceptions.ConnectionError:
         time.sleep(1)
-
 
 
 def disable_recording_settings():
@@ -202,8 +203,61 @@ def get_formated_timestamp(total_seconds):
 
 def get_player_kill_timestamps(summoner_name):
     events = get_events()
-    events = [event for event in events if (event.get('EventName') == 'ChampionKill' and event.get('KillerName') == summoner_name)]
-    champions = get_players_data()
-    times_stamps = [{'victim': next(item.get("championName") for item in champions if item.get('summonerName') == event.get('VictimName')), 'time': get_formated_timestamp(event.get('EventTime') - 10)} for event in events]
+    print(summoner_name)
+    # events = [event for event in events if (event.get('EventName') == 'ChampionKill' and event.get('KillerName') == summoner_name)]
 
-    return times_stamps
+    champions = get_players_data()
+    final_events = []
+    for event in events:
+
+        formatted_event = get_formated_event(event, summoner_name, champions)
+
+        if not formatted_event:
+            continue
+        formatted_event['seconds'] = event.get('EventTime')
+        formatted_event['id'] = event.get('EventID')
+        final_events.append(formatted_event)
+
+    return final_events
+
+
+def get_formated_event(event, summoner_name, champions):
+    if event.get('EventName') == 'ChampionKill':
+        if event.get('KillerName') == summoner_name:
+            return {
+                'description': 'Kill',
+                'victim': next(item.get("championName") for item in champions if item.get('summonerName') == event.get('VictimName')),
+            }
+        if summoner_name in event.get('Assisters'):
+            return {
+                'description': 'Assist',
+                'victim': next(item.get("championName") for item in champions if item.get('summonerName') == event.get('VictimName')),
+            }
+        if event.get('VictimName') == summoner_name:
+            if 'Turret' in event.get('KillerName'):
+                return {
+                    'description': 'Death',
+                    'killer': 'Turret',
+                }
+            return {
+                'description': 'Death',
+                'killer': event.get("KillerName"),
+            }
+    if event.get('EventName') == 'TurretKilled':
+        if summoner_name in event.get('Assisters'):
+            return {
+                    'description': 'Destroys Turret',
+            }
+
+    if event.get('EventName') == 'InhibKilled':
+        if summoner_name in event.get('Assisters'):
+            return {
+                    'description': 'Destroys Inhibitor',
+            }
+    if event.get('EventName') == 'BaronKill':
+        if summoner_name in event.get('Assisters') or summoner_name in event.get('Assisters'):
+            return {
+                    'description': 'Kills Baron',
+            }
+    return None
+

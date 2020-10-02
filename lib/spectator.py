@@ -29,6 +29,10 @@ from lib.utils import pretty_log
 WAIT_TIME = 2
 
 
+class GameRemakeException(Exception):
+    pass
+
+
 def wait_finish():
     print("[SPECTATOR] - Waiting for game to finish..")
     current_time = get_current_game_time()
@@ -38,9 +42,13 @@ def wait_finish():
             raise GameCrashedException
         if bugsplat():
             raise GameCrashedException
-        if game_finished() and new_time >= 15 * 60:
-            print("[SPECTATOR] - Game Finished")
-            break
+        finished = game_finished()
+        if finished:
+            if new_time <= 4 * 60:
+                raise GameRemakeException
+            else:
+                print("[SPECTATOR] - Game Finished")
+                break
         time.sleep(1)
 
 
@@ -200,8 +208,8 @@ def close_programs():
     programs_manager.close_program(obs_manager.OBS_EXE)
     programs_manager.close_program(league_manager.LEAGUE_EXE)
     programs_manager.close_program(league_manager.BUGSPLAT_EXE)
-    # programs_manager.close_program(programs_manager.CHROME_EXE)
-    # programs_manager.close_program(programs_manager.DISCORD_EXE)
+    programs_manager.close_program(programs_manager.CHROME_EXE)
+    programs_manager.close_program(programs_manager.DISCORD_EXE)
     disable_settings()
 
 
@@ -290,7 +298,7 @@ def spectate(match_data):
     try:
         handle_game(match_data)
     except (subprocess.CalledProcessError, requests.exceptions.ConnectionError, GameCrashedException,
-            PortNotFoundException) as exception:
+            PortNotFoundException, GameRemakeException) as exception:
 
         print(f'{exception} was raised during the process')
         close_programs()

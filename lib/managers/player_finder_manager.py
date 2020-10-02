@@ -14,7 +14,8 @@ REGIONS_TO_SEARCH = [Region.korea.value, Region.europe_west.value]
 # REGIONS_TO_SEARCH = [Region.europe_west.value, Region.korea.value]
 
 ROLE_INDEXES = ['Top', 'Jungle', 'Mid', 'Bot', 'Support']
-interests = ['Samira', 'Vayne', 'Irelia', 'Yasuo']
+NB_WORKERS = 10
+interests = ['Samira', 'Vayne', 'Irelia', 'Yasuo', 'Pyke']
 
 
 def get_final_players_data(porofessor_players, opgg_players_data):
@@ -25,7 +26,8 @@ def get_final_players_data(porofessor_players, opgg_players_data):
             return
         players_data[player_name] = opgg_players_data[player_name]
     return players_data
-NB_WORKERS = 10
+
+
 def find_ladder_player(check_start=True):
     already_searched_players = set()
     for region in REGIONS_TO_SEARCH:
@@ -114,80 +116,7 @@ def handle_player(summoners_info_queue, player_found_event, already_searched_pla
     if player_found_event.is_set():
         print("breaking")
     return None
-# def find_ladder_player(check_start=True):
-#     already_searched_players = set()
-#     for region in REGIONS_TO_SEARCH:
-#         # while in_challenger_league:
-#         players = opgg_extractor.get_ladder(region)
-#         for index, summoner_name in enumerate(players):
-#             if summoner_name in already_searched_players:
-#                 # print(f'{summoner_name} already checked')
-#                 continue
-#             print(f'[{index}/{len(players)}] - Checking {summoner_name}')
-#             # summoner = get_summoner(name=summoner_name, region=region)
-#             #
-#             # try:
-#             #     current_match = get_current_match(summoner, region=region)
-#             # except datapipelines.common.NotFoundError:
-#             #     continue
-#
-#             # duration = current_match.duration
-#             # print(f'{duration=}')
-#             #
-#             # if duration.days == 0 and duration.seconds > 0:
-#             #     continue
-#             # print(f'valid duration: {current_match.duration}')
-#             opgg_match_data = opgg_extractor.get_match_data(summoner_name, region)
-#
-#             if not opgg_match_data:
-#                 continue
-#
-#             opgg_players_data = opgg_match_data.get('players_data')
-#             for player in opgg_players_data:
-#                 already_searched_players.add(player)
-#
-#             player_data = opgg_players_data.get(summoner_name)
-#             tier = player_data.get('tier')
-#             if tier != 'Challenger':
-#                 print(f'{summoner_name} is only {tier}')
-#                 break
-#
-#             if not opgg_match_data.get('is_ranked'):
-#                 print(f"Not a ranked")
-#                 continue
-#             try:
-#                 porofessor_match_data = porofessor_extractor.get_match_data(summoner_name, region)
-#             except PorofessorNoResponseException:
-#                 return
-#
-#             if not porofessor_match_data:
-#                 continue
-#
-#             already_started = porofessor_match_data.get('already_started')
-#             if check_start and already_started:
-#                 continue
-#
-#             porofessor_players = porofessor_match_data.get('players')
-#
-#             players_data = get_final_players_data(porofessor_players, opgg_players_data)
-#             if not players_data:
-#                 continue
-#
-#             for player_name, player_data in players_data.items():
-#                 print(player_name, player_data)
-#                 player_position = list(players_data.keys()).index(player_name)
-#                 role = ROLE_INDEXES[player_position % 5]
-#                 player_data['player_position'] = player_position
-#                 player_data['role'] = role
-#
-#             for champion_skill in interests:
-#                 for player_name, player_data in players_data.items():
-#                     if player_data['champion'] == champion_skill:
-#                         match_data = {'summoner_name': player_name, 'players_data': players_data, 'region': region}
-#                         return match_data
-#
-#             match_data = {'summoner_name': summoner_name, 'players_data': players_data, 'region': region}
-#             return match_data
+
 def get_match_data(summoner_name, region):
     opgg_match_data = opgg_extractor.get_match_data(summoner_name, region)
 
