@@ -24,7 +24,7 @@ def create_highlight(events):
     clips = get_clips(events)
     video = VideoFileClip(VIDEOS_PATH + "hl.mkv")
     clip = video.subclip(0,60)
-    clip = clip.fx(vfx.speedx, 0.5)
+    clip = clip.fl_time( lambda t: 0.5 * t)
     import multiprocessing
 
     threads = multiprocessing.cpu_count()
