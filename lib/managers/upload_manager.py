@@ -10,14 +10,17 @@ from oauth2client import tools  # Added
 from oauth2client.client import Storage
 from oauth2client.file import Storage  # Added
 from youtube_uploader_selenium import YouTubeUploader
-PROJECT_PATH = 'C:\\Users\\Alex\\PycharmProjects\\LeagueUploader\\'
+
+from lib.constants import PROJECT_PATH, VIDEOS_PATH
+from lib.managers.highlight_creator import HighlightCreator
+from lib.managers.videos_to_upload_manager import get_videos_to_upload, remove_video
+
 LOG_NAME = "upload_logger"
 
 import lib.managers.thumbnail_manager as thumbnail_manager
 
 
 
-VIDEOS_PATH = 'D:\\LeagueReplays\\'
 match_data_PATH = PROJECT_PATH + 'json/match_data.json'
 api_service_name = "youtube"
 api_version = "v3"
@@ -71,13 +74,13 @@ def add_video_to_queue(match_data):
 
 
 def upload_video(video_match_data):
-    path = VIDEOS_PATH + video_match_data['path']
+    # path = VIDEOS_PATH + video_match_data['path']
     video_id = None
     try:
         video_id = upload_default_video(video_match_data)
         update_video(video_id, video_match_data)
-        os.remove(path)
-        logger.info(f"{path} Removed!")
+        # os.remove(path)
+        # logger.info(f"{path} Removed!")
     except Exception as e:
         logger.exception(e)
         delete_video(video_id)
@@ -97,39 +100,48 @@ class VideoUploadException(Exception):
     pass
 
 
+def handle_match(match_data):
+    file_name = match_data['file_name']
+    path = VIDEOS_PATH + file_name
+    if not os.path.exists(path):
+        logger.info(f"{match_data['title']} - {path} File not found")
+    else:
+        try:
+            logger.info(f"{match_data['title']}")
+
+            events = match_data['events']
+            hl_creator = HighlightCreator(file_name, events)
+            highlight_file_name = hl_creator.create_highlight()
+            old_path = path
+            match_data['file_name'] = highlight_file_name
+            upload_video(match_data)
+
+            os.remove(old_path)
+            logger.info(f"{path} Removed!")
+        except VideoUploadException as e:
+            logger.info(e)
+
+
 def empty_queue():
     logger.info('Emptying queue')
     while True:
-        to_upload_json = open(TO_UPLOAD_PATH, "r")
-        to_upload = json.load(to_upload_json)
-        to_upload_json.close()
+        to_upload = get_videos_to_upload()
         try:
-            match_data = to_upload.pop(0)
+            match_data = to_upload[0]
         except IndexError:
             logger.info('uploads are empty')
             break
+        handle_match(match_data)
 
-
-        path = VIDEOS_PATH + match_data['path']
-        if not os.path.exists(path):
-            logger.info(f"{match_data['title']} - {path} File not found")
-        else:
-            try:
-                upload_video(match_data)
-            except VideoUploadException as e:
-                logger.info(e)
-                break
-
-        to_upload_json = open(TO_UPLOAD_PATH, "w")
-        json.dump(to_upload, to_upload_json, indent=2)
-        to_upload_json.close()
+        match_id = match_data.get('match_id')
+        remove_video(match_id)
 
 
 def upload_default_video(match_data):
     title = match_data['title']
     description = match_data['description']
 
-    path = VIDEOS_PATH + match_data['path']
+    path = VIDEOS_PATH + match_data['file_name']
 
     logger.info(f'[UPLOAD MANAGER] - Uploading {title}')
 

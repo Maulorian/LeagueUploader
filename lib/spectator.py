@@ -1,30 +1,25 @@
 import ntpath
 import os
-import re
 import shutil
 import subprocess
 import time
-import traceback
-from datetime import datetime
 
 import cassiopeia as cass
 import datapipelines
 import requests
-from cassiopeia import get_current_match
 
 from lib.builders import description_builder, tags_builder
-from lib.extractors import opgg_extractor
+from lib.builders.title_builder import get_title
 from lib.extractors.opgg_extractor import get_pro_players_info
 from lib.managers import replay_api_manager, obs_manager, league_manager, upload_manager, programs_manager
-
-from lib.builders.title_builder import get_title
 from lib.managers.game_cfg_manager import enable_settings, disable_settings
-from lib.managers.league_manager import bugsplat, kill_bugsplat, start_game
-from lib.managers.player_finder_manager import get_match_data
+from lib.managers.league_manager import bugsplat, start_game
+from lib.managers.player_finder_manager import ROLE_INDEXES
+from lib.managers.recorded_games_manager import delete_game
 from lib.managers.replay_api_manager import get_player_position, PortNotFoundException, game_finished, game_started, \
     get_current_game_time, game_launched
 from lib.managers.upload_manager import VIDEOS_PATH
-from lib.utils import pretty_log
+from lib.utils import pretty_log, pretty_print
 
 WAIT_TIME = 2
 
@@ -33,18 +28,42 @@ class GameRemakeException(Exception):
     pass
 
 
-def wait_finish():
+def wait_finish(lateness, current_delay, start_timer):
     print("[SPECTATOR] - Waiting for game to finish..")
-    current_time = get_current_game_time()
+    start_game_time = current_delay
+
+    game_crash_retries = 10
     while True:
-        new_time = get_current_game_time()
-        if new_time == current_time:
-            raise GameCrashedException
+        current_game_time = get_current_game_time()
+        if current_game_time == start_game_time:
+            game_crash_retries -= 1
+            print(f'{game_crash_retries=}')
+
+            if game_crash_retries == 0:
+                raise GameCrashedException
+        print(f'{current_game_time=}')
+
+        delta_game_time = current_game_time - start_game_time
+        start_game_time = current_game_time
+
+        new_timer = time.time()
+        delta_real_time = new_timer - start_timer
+        start_timer = new_timer
+
+        print(f'{delta_real_time=}')
+        print(f'{delta_game_time=}')
+
+        current_delay += delta_real_time - delta_game_time
+        lateness[round(current_game_time)] = current_delay
+        pretty_print(lateness)
+
+
+
         if bugsplat():
             raise GameCrashedException
         finished = game_finished()
         if finished:
-            if new_time <= 4 * 60:
+            if current_game_time <= 4 * 60:
                 raise GameRemakeException
             else:
                 print("[SPECTATOR] - Game Finished")
@@ -102,7 +121,6 @@ def wait_for_game_start():
 
     while True:
         time_passed = time.time() - start
-        print(time_passed)
         if time_passed > (5 * 60):
             raise GameCrashedException
         game_time = get_current_game_time()
@@ -112,7 +130,7 @@ def wait_for_game_start():
         if bugsplat():
             raise GameCrashedException
         wait_seconds(WAIT_TIME)
-
+    return game_time
 def get_current_game_version():
     r = requests.get('https://raw.githubusercontent.com/CommunityDragon/Data/master/patches.json')
     version = r.json()['patches'][-1]['name']
@@ -127,8 +145,8 @@ def wait_seconds(WAIT_TIME):
 def find_and_launch_game(match_data):
     match_id = match_data.get('match_id')
     region = match_data.get('region')
-    encryption_key = match_data.get('encryption_key')
-    start_game(region, match_id, encryption_key)
+    observer_key = match_data.get('observer_key')
+    start_game(region, match_id, observer_key)
 
 
 @pretty_log
@@ -142,9 +160,11 @@ def get_video_path():
     return tail
 
 
-def wait_summoners_spawned():
+def wait_summoners_spawned(start_time):
     print("[SPECTATOR] - Waiting for Summoners to spawn..")
-
+    if start_time > 5:
+        print("[SPECTATOR] - Summoners spawned")
+        return
     while True:
         current_time = replay_api_manager.get_current_game_time()
         if current_time > 5:
@@ -161,18 +181,15 @@ def handle_game(match_data):
 
     find_and_launch_game(match_data)
     wait_for_game_launched()
-    time.sleep(WAIT_TIME)
-
-    wait_seconds(WAIT_TIME)
-
     wait_for_game_loaded()
     replay_api_manager.enable_recording_settings()
 
-    wait_for_game_start()
-
+    delay = wait_for_game_start()
+    delays = dict([(0, delay)])
     league_manager.toggle_recording()
+    start_timer = time.time()
 
-    wait_summoners_spawned()
+    wait_summoners_spawned(delay)
 
     player_champion = match_data.get('player_champion')
     player_position = get_player_position(player_champion)
@@ -183,9 +200,9 @@ def handle_game(match_data):
     league_manager.adjust_fog(side)
 
     wait_seconds(WAIT_TIME)
-    match_data['path'] = get_video_path()
-    print(f'Saving game to {match_data["path"]}')
-    wait_finish()
+    match_data['file_name'] = get_video_path()
+    print(f'Saving game to {match_data["file_name"]}')
+    wait_finish(delays, delay, start_timer)
     league_manager.toggle_recording()
 
     player_data = replay_api_manager.get_player_data(player_champion)
@@ -194,8 +211,8 @@ def handle_game(match_data):
     match_data['runes'] = replay_api_manager.get_player_runes(player_data)
     match_data['summonerSpells'] = replay_api_manager.get_player_summoner_spells(player_data)
     summoner_name = match_data.get('summoner_name')
-    match_data['player_kill_timestamps'] = replay_api_manager.get_player_kill_timestamps(summoner_name)
-
+    match_data['events'] = replay_api_manager.get_player_events(summoner_name, delays)
+    print(match_data['events'])
     close_programs()
     open_programs()
 
@@ -221,41 +238,23 @@ class DiskFullException(Exception):
 def handle_postgame(match_data):
     wait_seconds(WAIT_TIME * 5)
     upload_manager.add_video_to_queue(match_data)
+    match_id = match_data.get('match_id')
+    delete_game(match_id)
+
     total_space, used_space, free_space = shutil.disk_usage("D:")
     total_space, used_space, free_space = (total_space // (2 ** 30)), (used_space // (2 ** 30)), (free_space // (2 ** 30))
     if free_space < 1:
         raise DiskFullException(free_space)
 
-
-def get_summoner_current_match(summoner):
-    try:
-        match = summoner.current_match
-        return match
-    except datapipelines.common.NotFoundError:
-        return
-
-
-
-
-
-
-def spectate(match_data):
+def spectate(summoner_name, game_data):
 
     close_programs()
 
-    region = match_data.get('region')
-    summoner_name = match_data.get('summoner_name')
+    region = game_data.get('region')
+    match_id = game_data.get('match_id')
+    observer_key = game_data.get('observer_key')
+    players_data = game_data.get('players_data')
 
-    summoner = cass.get_summoner(region=region, name=summoner_name)
-    match = get_summoner_current_match(summoner)
-
-    if match is None:
-        print(f'"{summoner_name}" is not in game')
-        return
-    match_id = match.id
-    encryption_key = match.observer_key
-
-    players_data = match_data.get('players_data')
 
     player_data = players_data[summoner_name]
     player_position = list(players_data.keys()).index(summoner_name)
@@ -265,7 +264,7 @@ def spectate(match_data):
     enemy_summoner_name = list(players_data.keys())[enemy_position]
     enemy_champion = players_data[enemy_summoner_name].get('champion')
 
-    role = player_data.get('role')
+    role = ROLE_INDEXES[player_position % 5]
     tier = player_data.get('tier')
     lp = player_data.get('lp')
     version = get_current_game_version()
@@ -281,7 +280,7 @@ def spectate(match_data):
         'lp': lp,
         'version': version,
         'match_id': match_id,
-        'encryption_key': encryption_key,
+        'observer_key': observer_key,
         'side': side
     }
     pro_players_info = get_pro_players_info(region)
@@ -305,9 +304,9 @@ def spectate(match_data):
         open_programs()
         wait_seconds(WAIT_TIME)
 
-        if 'path' in match_data:
-            os.remove(VIDEOS_PATH + match_data['path'])
-            print(f"{match_data['path']} Removed!")
+        if 'file_name' in match_data:
+            os.remove(VIDEOS_PATH + match_data['file_name'])
+            print(f"{match_data['file_name']} Removed!")
         return
 
     metadata = {
@@ -319,11 +318,12 @@ def spectate(match_data):
         'items': match_data['items'],
         'runes': match_data['runes'],
         'summonerSpells': match_data['summonerSpells'],
-        'path': match_data['path'],
+        'file_name': match_data['file_name'],
         'region': region,
         'tier': tier,
         'lp': lp,
         'role': role,
-
+        'events': match_data['events'],
+        'match_id': match_data['match_id']
     }
     handle_postgame(metadata)

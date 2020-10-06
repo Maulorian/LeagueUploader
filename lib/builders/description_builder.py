@@ -15,7 +15,7 @@ def get_player_kills(match_data):
 def get_description(match_data):
     description = get_players_opgg(match_data)
     description += '\n'
-    description += get_player_kills(match_data)
+    # description += get_player_kills(match_data)
 
     print(f'[{__name__.upper()}] - Description: {description}')
     return description

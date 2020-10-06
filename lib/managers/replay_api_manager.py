@@ -153,7 +153,8 @@ def get_events():
 def game_finished() -> bool:
     events = get_events()
     last_event = events[-1]
-    # print(last_event)
+    print(last_event)
+
     return last_event.get('EventName') == GAME_END
 
 
@@ -201,10 +202,17 @@ def get_formated_timestamp(total_seconds):
     seconds = total_seconds % 60
     return f'{str(round(minutes)).zfill(2)}:{str(round(seconds)).zfill(2)}'
 
-def get_player_kill_timestamps(summoner_name):
+
+def get_lateness(lateness_times, event_time):
+    for gt, l in sorted(list(lateness_times.items()), key=lambda k: k, reverse=True):
+        print(gt, l)
+        if gt <= event_time:
+            return l
+
+
+def get_player_events(summoner_name, lateness_times):
     events = get_events()
     print(summoner_name)
-    # events = [event for event in events if (event.get('EventName') == 'ChampionKill' and event.get('KillerName') == summoner_name)]
 
     champions = get_players_data()
     final_events = []
@@ -214,50 +222,58 @@ def get_player_kill_timestamps(summoner_name):
 
         if not formatted_event:
             continue
-        formatted_event['seconds'] = event.get('EventTime')
-        formatted_event['id'] = event.get('EventID')
+        event_time = event.get('EventTime')
+
+        lateness = get_lateness(lateness_times, event_time)
+        formatted_event['time'] = event_time - lateness
+        formatted_event['lateness'] = lateness
+
         final_events.append(formatted_event)
 
     return final_events
 
 
 def get_formated_event(event, summoner_name, champions):
+    if event.get('EventName') == GAME_END:
+        return {
+            'type': 'game_end'
+        }
     if event.get('EventName') == 'ChampionKill':
         if event.get('KillerName') == summoner_name:
             return {
-                'description': 'Kill',
+                'type': 'kill',
                 'victim': next(item.get("championName") for item in champions if item.get('summonerName') == event.get('VictimName')),
             }
         if summoner_name in event.get('Assisters'):
             return {
-                'description': 'Assist',
+                'type': 'assist',
                 'victim': next(item.get("championName") for item in champions if item.get('summonerName') == event.get('VictimName')),
             }
         if event.get('VictimName') == summoner_name:
             if 'Turret' in event.get('KillerName'):
                 return {
-                    'description': 'Death',
+                    'type': 'death',
                     'killer': 'Turret',
                 }
             return {
-                'description': 'Death',
+                'type': 'death',
                 'killer': event.get("KillerName"),
             }
     if event.get('EventName') == 'TurretKilled':
         if summoner_name in event.get('Assisters'):
             return {
-                    'description': 'Destroys Turret',
+                    'type': 'turret_kill',
             }
 
     if event.get('EventName') == 'InhibKilled':
         if summoner_name in event.get('Assisters'):
             return {
-                    'description': 'Destroys Inhibitor',
+                    'type': 'inhibitor_kill',
             }
     if event.get('EventName') == 'BaronKill':
         if summoner_name in event.get('Assisters') or summoner_name in event.get('Assisters'):
             return {
-                    'description': 'Kills Baron',
+                    'type': 'baron_kill',
             }
     return None
 

@@ -1,17 +1,19 @@
-import datetime
 import re
-
-import requests
-import io
-from bs4 import BeautifulSoup
-
+from datetime import time, datetime
 from urllib.parse import unquote
 
-from cassiopeia import Region, Queue, Side
-from datetime import datetime
+import datapipelines
+import requests
+from bs4 import BeautifulSoup
+from cassiopeia import Region, Side, get_summoner
 
-from lib.utils import pretty_log
-
+from lib.managers import player_finder_manager, recorded_games_manager
+from lib.utils import pretty_log, pretty_print
+import cassiopeia as cass
+# REGION_URLS = {
+#     Region.korea.value: 'www.op.gg',
+#     Region.europe_west.value: 'euw.op.gg'
+# }
 REGION_URLS = {
     Region.korea.value: 'www.op.gg',
     Region.europe_west.value: 'euw.op.gg'
@@ -26,8 +28,25 @@ SPECTATE = '/spectate'
 SPECTATE_TAB = '/pro'
 PRO_PLAYERS_LIST = '/list/'
 
+REQUEST_RECORDING = '/summoner/ajax/requestRecording/gameId='
 
-def extract_match_type(soup):
+
+class RecordingRequestException(Exception):
+    pass
+
+
+def request_recording(match_id, region):
+    region_url = REGION_URLS[region]
+    url = SCHEMA + region_url + REQUEST_RECORDING + str(match_id)
+    response = requests.get(url, timeout=60)
+    status_code = response.status_code
+    print(status_code)
+    return status_code == 200
+
+
+def extract_match_type(html):
+    soup = BeautifulSoup(html, "html.parser")
+
     queue = soup.find('div', {'class': 'SpectateSummoner'})
     queue = queue.find('div', {'class': 'Box'})
     queue = queue.find('div', {'class': 'Title'})
@@ -100,28 +119,51 @@ def extract_names(html):
     return list(dict.fromkeys(challengers))
 
 
-def get_match_data(player_name, region):
+class MatchIdNotFoundException(Exception):
+    def __init__(self, html):
+        self.html = html
+
+
+def extract_match_id(html):
+
+    p = re.compile("\$\.OP\.GG\.matches\.openSpectate\(([0-9]*)\); return false;")
+    result = p.search(html)
+    if not result:
+        return
+
+    match_id = result.group(1)
+    return int(match_id)
+
+
+class OpggTooManyRequestException(Exception):
+    pass
+
+
+def get_match_data(summoner_name, region):
     region_url = REGION_URLS[region]
-    url = SCHEMA + region_url + SPECTATE_PLAYER_PAGE + player_name
+    url = SCHEMA + region_url + SPECTATE_PLAYER_PAGE + summoner_name
 
     r = requests.get(url, timeout=60)
+    if r.status_code == 403:
+        raise OpggTooManyRequestException
     html = r.text
-    # with io.open(f'{__name__.upper()}.html', "w", encoding="utf-8") as f:
-    #     f.write(html)
-    soup = BeautifulSoup(html, "html.parser")
 
     match_data = {}
 
-    players = extract_players_data(soup)
+    players = extract_players_data(html)
+    match_data['players_data'] = players
+
     if not len(players):
-        # print(f'{datetime.now()} [{__name__.upper()}] - No opgg information for "{player_name}"')
         return
 
-    is_ranked = extract_match_type(soup)
-    # print(f'[{__name__.upper()}] - Players Order: {players}')
-    match_data['players_data'] = players
+    is_ranked = extract_match_type(html)
     match_data['is_ranked'] = is_ranked
-    print(f'{datetime.now()} [{__name__.upper()}] - Getting player match data for "{player_name}"')
+
+    match_id = extract_match_id(html)
+    if not match_id:
+        raise MatchIdNotFoundException(html)
+    match_data['match_id'] = match_id
+    # print(f'"{summoner_name}" : match available on opgg')
 
     return match_data
 
@@ -132,12 +174,14 @@ def get_player_page(region):
     return player_page_url
 
 
-def extract_players_data(soup):
+def extract_players_data(html):
+    soup = BeautifulSoup(html, "html.parser")
+
     players = {}
     players_html = soup.find_all("tr")
     players_html = list(
         filter(lambda tr: tr.get('id') is not None and 'SpectateBigListRow' in tr.get('id'), players_html))
-    side = Side.blue
+    side = Side.blue.value
     for i in range(len(players_html)):
         # with open(f'player.html', 'w') as f:
         #     f.write(str(players_html[i]))
@@ -153,7 +197,7 @@ def extract_players_data(soup):
         player_data['lp'] = lp
         player_data['side'] = side
         if i == 4:
-            side = Side.red
+            side = Side.red.value
         players[player_name] = player_data
 
     return players
