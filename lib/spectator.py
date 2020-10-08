@@ -88,7 +88,6 @@ def handle_game(match_data):
     print(f'Saving game to {match_data["file_name"]}')
     wait_finish(recording_times, game_time_when_started_recording, recording_start_time)
     league_manager.toggle_recording()
-
     player_data = replay_api_manager.get_player_data(player_champion)
     match_data['items'] = replay_api_manager.get_player_items(player_data)
     match_data['skin_name'] = replay_api_manager.get_player_skin(player_data)
@@ -127,7 +126,10 @@ def handle_postgame(match_data):
     if free_space < 1:
         raise DiskFullException(free_space)
 
-def spectate(summoner_name, game_data):
+def spectate(player_data):
+    summoner_name = player_data.get('summoner_name')
+    game_data = player_data.get('game_data')
+    kills = player_data.get('kills')
     close_programs()
 
     region = game_data.get('region')
@@ -161,7 +163,8 @@ def spectate(summoner_name, game_data):
         'version': version,
         'match_id': match_id,
         'observer_key': observer_key,
-        'side': side
+        'side': side,
+        'kills': kills
     }
     pro_players_info = get_pro_players_info(region)
 
@@ -216,7 +219,8 @@ def spectate(summoner_name, game_data):
         'lp': lp,
         'role': role,
         'events': match_data['events'],
-        'match_id': match_data['match_id']
+        'match_id': match_data['match_id'],
+        'kills': match_data['kills']
     }
     handle_postgame(metadata)
     programs_manager.open_program(programs_manager.CHROME_EXE)

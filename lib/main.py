@@ -25,8 +25,8 @@ while True:
             print(f'{len(finished_games)} finished games, waiting.')
             wait_seconds(30)
             continue
-        summoner_name, game_data = get_player_with_most_kills(finished_games)
-        spectate(summoner_name, game_data)
+        player_data = get_player_with_most_kills(finished_games)
+        spectate(player_data)
 
     except DiskFullException as e:
         print(f'Disk is full ({e.disk_space})')

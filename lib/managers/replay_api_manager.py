@@ -221,6 +221,11 @@ def get_recording_time(recording_times, event_game_time):
             adjusted_recording_time = recording_time - delta_game_time
             return adjusted_recording_time
 
+    last_recording_time = list(recording_times.keys())[-1]
+    last_delta = last_recording_time - recording_times[last_recording_time]
+
+    return event_game_time - last_delta
+
 
 def get_player_events(summoner_name, recording_times):
     events = get_events()
@@ -237,7 +242,8 @@ def get_player_events(summoner_name, recording_times):
         event_game_time = event.get('EventTime')
 
         recording_time = get_recording_time(recording_times, event_game_time)
-        formatted_event['time'] = recording_time
+
+        formatted_event['recording_time'] = recording_time
         formatted_event['event_game_time'] = event_game_time
 
         final_events.append(formatted_event)

@@ -59,7 +59,7 @@ def get_player_with_most_kills(finished_games_data):
 
     keep_top_games(players_kills_sorted)
 
-    return player_with_most_kills.get('summoner_name'), player_with_most_kills.get('game_data')
+    return player_with_most_kills
 
 
 def keep_top_games(players_kills_sorted):

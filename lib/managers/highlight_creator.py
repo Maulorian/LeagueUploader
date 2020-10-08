@@ -102,8 +102,8 @@ class HighlightCreator:
             event_type = event.get('type')
             after_event_time = AFTER_EVENT_TIMES.get(event_type)
             clip_data = {
-                'start_time': event.get('time') - BEFORE_EVENT_TIME,
-                'end_time': event.get('time') + after_event_time
+                'start_time': event.get('recording_time') - BEFORE_EVENT_TIME,
+                'end_time': event.get('recording_time') + after_event_time
             }
             clips_data.append(clip_data)
         clips_data.sort(key=lambda clip: clip.get('start_time'))
