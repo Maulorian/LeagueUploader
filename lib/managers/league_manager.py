@@ -1,9 +1,13 @@
 import os
+import random
 import subprocess
 import pywinauto.keyboard as keyboard
 
 from cassiopeia import Region, Side
 from pywinauto.application import Application
+
+from lib.extractors import opgg_extractor
+from lib.extractors.league_of_graphs import get_match_recording_settings
 from lib.managers.programs_manager import running
 from lib.utils import pretty_log, cd
 
@@ -13,34 +17,33 @@ FOG_KEYBINDS = {
     Side.red.value: 'F2',
 }
 LEAGUE_EXE = 'League of Legends.exe'
-LEAGUE_PATH = 'C:\\Riot Games\\League of Legends\\'
+LEAGUE_PATH = 'C:\Riot Games\League of Legends\\'
 GAME = 'Game\\'
 BUGSPLAT_EXE = 'BsSndRpt.exe'
 KEYBINDS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0']
 LOCALE = 'en_GB'
 
-REGION_IDS = {
-    Region.korea.value: 'KR',
-    Region.europe_west.value: 'EUW1'
-}
-
-HOSTS = {
-    Region.korea.value: 'kr3.spectator.op.gg:80',
-    Region.europe_west.value: 'f2.spectator.op.gg:80'
-}
+# HOSTS = {
+#     Region.korea.value: 'kr3.spectator.op.gg:80',
+#     Region.europe_west.value: 'f2.spectator.op.gg:80'
+# }
 
 
 @pretty_log
-def start_game(region, match_id, encryption_key):
-    region_id = REGION_IDS[region]
-    # host_string = f'spectator.{region_id.lower()}.lol.riotgames.com:80'
-    host_string = HOSTS[region]
-    game_arguments = f'spectator {host_string} {encryption_key} {match_id} {region_id}'
-    # print(game_arguments)
+def start_game(region, match_id):
+    host, observer_key = get_match_recording_settings(match_id, region)
+    if not host:
+        return
+
+    game_arguments = f"spectator {host} {observer_key} {match_id} {region}-{random.randint(0, 32767)}{random.randint(0, 32767)}"
+    print(game_arguments)
     with cd(LEAGUE_PATH + GAME):
         fnull = open(os.devnull, 'w')
-        subprocess.Popen([LEAGUE_EXE, game_arguments, f"-Locale={LOCALE}", "-GameBaseDir=.."], stdout=fnull,
-                         stderr=subprocess.STDOUT)
+        subprocess.Popen([LEAGUE_EXE, game_arguments, "-GameBaseDir=..", f"-Locale={LOCALE}"], stdout=fnull, stderr=subprocess.STDOUT)
+#
+# def start_game(region, match_id):
+#     with cd('C:\Riot Games\League of Legends\Game'):
+#         subprocess.Popen(['League of Legends.exe', f"spectator replays.leagueofgraphs.com:80 mtZKAWeCefBPj7H4EhgqxtArIRYh35J1 4701642062 KR-{random.randint(0, 32767)}{random.randint(0, 32767)}", "-GameBaseDir=..", "-Locale=en_GB"])
 
 
 def select_summoner(position):

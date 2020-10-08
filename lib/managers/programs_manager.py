@@ -7,21 +7,19 @@ from lib.utils import pretty_log, cd
 
 DISCORD_EXE = 'Discord.exe'
 CHROME_EXE = 'chrome.exe'
+OBS_EXE = 'obs64.exe'
 
 DIRECTORIES = {
     CHROME_EXE: "C:\\Program Files (x86)\\Google\\Chrome\\Application",
-    DISCORD_EXE: "C:\\Users\\Alex\\AppData\\Local\\Discord\\app-0.0.307"
+    DISCORD_EXE: "C:\\Users\\Alex\\AppData\\Local\\Discord\\app-0.0.307",
+    OBS_EXE: 'C:\\Program Files\\obs-studio\\bin\\64bit'
+
 }
 
 
 def running(processName):
-    '''
-    Check if there is any running process that contains the given name processName.
-    '''
-    # Iterate over the all the running process
     for proc in psutil.process_iter():
         try:
-            # Check if process name contains the given name string.
             if processName.lower() in proc.name().lower():
                 return True
         except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):

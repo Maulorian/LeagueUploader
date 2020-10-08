@@ -64,7 +64,7 @@ def get_player_data(champion):
     return champion
 
 
-def is_game_paused():
+def game_paused():
     r = requests.get(f'{get_base_url()}/replay/playback', verify=False)
     paused = r.json()['paused']
     print(f'[REPLAY-API] - Checking if Game is paused : {{paused={paused}}}')
@@ -203,14 +203,16 @@ def get_formated_timestamp(total_seconds):
     return f'{str(round(minutes)).zfill(2)}:{str(round(seconds)).zfill(2)}'
 
 
-def get_lateness(lateness_times, event_time):
-    for gt, l in sorted(list(lateness_times.items()), key=lambda k: k, reverse=True):
-        print(gt, l)
-        if gt <= event_time:
-            return l
+def get_recording_time(recording_times, event_game_time):
+    for i, recording_time in enumerate(sorted(list(recording_times.keys()), key=lambda k: k, reverse=True)):
+        game_time = recording_times[recording_time]
+        if event_game_time <= game_time:
+            delta_game_time = game_time - event_game_time
+            adjusted_recording_time = recording_time - delta_game_time
+            return adjusted_recording_time
 
 
-def get_player_events(summoner_name, lateness_times):
+def get_player_events(summoner_name, recording_times):
     events = get_events()
     print(summoner_name)
 
@@ -222,11 +224,11 @@ def get_player_events(summoner_name, lateness_times):
 
         if not formatted_event:
             continue
-        event_time = event.get('EventTime')
+        event_game_time = event.get('EventTime')
 
-        lateness = get_lateness(lateness_times, event_time)
-        formatted_event['time'] = event_time - lateness
-        formatted_event['lateness'] = lateness
+        recording_time = get_recording_time(recording_times, event_game_time)
+        formatted_event['time'] = recording_time
+        formatted_event['event_game_time'] = event_game_time
 
         final_events.append(formatted_event)
 

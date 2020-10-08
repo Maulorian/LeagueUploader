@@ -1,5 +1,6 @@
 import os
 import pprint
+import time
 
 
 def pretty_log(function):
@@ -22,6 +23,9 @@ def pretty_print(string):
     pp = pprint.PrettyPrinter(indent=2)
     pp.pprint(string)
 
+def wait_seconds(WAIT_TIME):
+    # print(f"[SPECTATOR] - Waiting {WAIT_TIME}")
+    time.sleep(WAIT_TIME)
 class cd:
     """Context manager for changing the current working directory"""
 

@@ -14,7 +14,7 @@ def write_to_file(recorded_games):
 
 
 def remove_video(match_id):
-    print(f'Deleting {match_id} from the file')
+    print(f'Deleting {match_id} from {constants.VIDEOS_TO_UPLOAD}')
     videos = get_videos_to_upload()
     videos = [game_data for game_data in videos if game_data.get('match_id') != match_id]
     write_to_file(videos)

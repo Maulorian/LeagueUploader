@@ -1,22 +1,17 @@
 import re
-from datetime import time, datetime
 from urllib.parse import unquote
 
-import datapipelines
 import requests
 from bs4 import BeautifulSoup
-from cassiopeia import Region, Side, get_summoner
+from cassiopeia import Side
 
-from lib.managers import player_finder_manager, recorded_games_manager
-from lib.utils import pretty_log, pretty_print
-import cassiopeia as cass
-# REGION_URLS = {
-#     Region.korea.value: 'www.op.gg',
-#     Region.europe_west.value: 'euw.op.gg'
-# }
+from lib.utils import pretty_log
+
+OBSERVER_KEY = '/match/new/batch/id='
+
 REGION_URLS = {
-    Region.korea.value: 'www.op.gg',
-    Region.europe_west.value: 'euw.op.gg'
+    'KR': 'www.op.gg',
+    'EUW': 'euw.op.gg'
 }
 SCHEMA = ' http://'
 LADDER = '/ranking/ladder'
@@ -154,6 +149,7 @@ def get_match_data(summoner_name, region):
     match_data['players_data'] = players
 
     if not len(players):
+
         return
 
     is_ranked = extract_match_type(html)
@@ -213,3 +209,16 @@ def get_tier_lp_from_rank(rank):
     tier = result.group(1)
     lp = result.group(3)
     return tier, lp
+
+
+def get_match_recording_settings(match_id, region):
+    region_url = REGION_URLS[region]
+    url = SCHEMA + region_url + OBSERVER_KEY + str(match_id)
+
+    r = requests.get(url, timeout=60)
+    p = re.compile('@start "" "League of Legends.exe" "spectator (.*) (.*) (.*) (.*)" "-UseRads" "-Locale=!locale!" "-GameBaseDir=.."')
+    bat_text = r.text
+    result = p.search(bat_text)
+    host = result.group(1)
+    observer_key = result.group(2)
+    return host, observer_key

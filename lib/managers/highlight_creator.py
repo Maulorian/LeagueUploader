@@ -95,11 +95,8 @@ class HighlightCreator:
         return highlight_file_name
 
     def get_clips_data(self):
-        game_start = {
-            'start_time': 0,
-            'end_time': START_GAME
-        }
-        clips_data = [game_start]
+
+        clips_data = []
 
         for event in self.events:
             event_type = event.get('type')

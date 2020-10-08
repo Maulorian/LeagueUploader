@@ -1,11 +1,7 @@
 import os
 
-import datapipelines
 import requests
-from cassiopeia import Region, cassiopeia
-
-from lib.managers.recorded_games_manager import get_recorded_games, delete_game
-from lib.utils import pretty_print
+from cassiopeia import Region
 
 SCHEMA = 'https://'
 
@@ -50,13 +46,18 @@ def get_all_challenger_players(region):
 
 def get_match(math_id, region):
     region_url = REGION_URLS.get(region)
-    url = SCHEMA + region_url + BASE_URL + MATCH_URL +str(math_id)
+    url = SCHEMA + region_url + BASE_URL + MATCH_URL + str(math_id)
 
     r = requests.get(url, headers={"X-Riot-Token": os.getenv("RIOT_KEY")})
     if r.status_code != 200:
         print(f'{math_id}: {r.status_code}')
         return
     return r.json()
+
+def get_current_game_version():
+    r = requests.get('https://raw.githubusercontent.com/CommunityDragon/Data/master/patches.json')
+    version = r.json()['patches'][-1]['name']
+    return version
 
 
 

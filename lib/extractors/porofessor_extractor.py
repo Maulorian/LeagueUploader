@@ -21,9 +21,43 @@ BASE_URL = ' http://porofessor.gg/'
 SPECTATE_PLAYER_PAGE = 'partial/live-partial/'
 NOT_IN_GAME = 'The summoner is not in-game, please retry later. The game must be on the loading screen or it must have started.'
 
+REQUEST_RECORDING = 'https://www.leagueofgraphs.com/api/record-replay/SWJvTlpyUVJBTjh0WkY1UjNocEN2WlpwV2FXZHZMRDFiZVQ3MnU5K1dmVT0='
+
 
 class PorofessorNoResponseException(Exception):
     pass
+
+
+
+
+def extract_recording_url(html):
+    p = re.compile("recordUrl: '(.*)',")
+    result = p.search(html)
+    return result.group(1)
+
+
+def get_request_recording_url(summoner_name, region):
+    region_url = REGION_URLS[region]
+    url = BASE_URL + SPECTATE_PLAYER_PAGE + region_url + summoner_name.replace(' ', '%20')
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.77 Safari/537.36"
+    }
+    r = requests.get(url, headers=headers, timeout=60)
+    html = r.text
+    return extract_recording_url(html)
+
+
+def request_recording(summoner_name, region):
+    print(f'Requesting recording for {summoner_name} in {region}')
+
+    url = get_request_recording_url(summoner_name, region)
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.77 Safari/537.36"
+    }
+    response = requests.get(url, headers=headers, timeout=60)
+    status_code = response.status_code
+    print(status_code)
+    return status_code == 200
 
 
 def get_match_data(summoner_name, region):

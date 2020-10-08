@@ -13,7 +13,10 @@ def get_title(match_info):
 
     pro_player_info = match_info.get('pro_player_info')
     if pro_player_info:
-        name = pro_player_info['name']
+        name = ""
+        if pro_player_info['team']:
+            name += f'{pro_player_info["team"]} '
+        name += pro_player_info['name']
 
     first_letter = name[0].upper()
     name = manual_replace(name, first_letter, 0)

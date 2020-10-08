@@ -2,7 +2,6 @@ import json
 import logging
 import os
 
-from googleapiclient import errors
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 from oauth2client import client  # Added
@@ -122,6 +121,7 @@ def handle_match(match_data):
             logger.info(e)
 
 
+
 def empty_queue():
     logger.info('Emptying queue')
     while True:
@@ -132,9 +132,9 @@ def empty_queue():
             logger.info('uploads are empty')
             break
         handle_match(match_data)
-
         match_id = match_data.get('match_id')
         remove_video(match_id)
+
 
 
 def upload_default_video(match_data):
