@@ -1,16 +1,15 @@
 import os
 import threading
-import time
 import traceback
 
 import cassiopeia
-from cassiopeia import datastores
 from dotenv import load_dotenv
+
+load_dotenv()
 
 from lib.extractors import recording_enabler
 from lib.managers.player_finder_manager import get_finished_recorded_games, get_player_with_most_kills
 
-load_dotenv()
 
 from lib.spectator import spectate, DiskFullException, wait_seconds
 
