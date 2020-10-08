@@ -26,9 +26,6 @@ PRO_PLAYERS_LIST = '/list/'
 REQUEST_RECORDING = '/summoner/ajax/requestRecording/gameId='
 
 
-class RecordingRequestException(Exception):
-    pass
-
 
 def request_recording(match_id, region):
     region_url = REGION_URLS[region]

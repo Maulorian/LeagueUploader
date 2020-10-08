@@ -125,6 +125,3 @@ def extract_players_order(players_html):
     players = list(map(lambda player_html: player_html.attrs['data-summonername'].strip(), players_html))
     return players
 
-
-class MatchNotStartedException(Exception):
-    pass
