@@ -1,15 +1,16 @@
+import configparser
 import os
 import random
 import subprocess
-import pywinauto.keyboard as keyboard
 
-from cassiopeia import Region, Side
+import pywinauto.keyboard as keyboard
+from cassiopeia import Side
 from pywinauto.application import Application
 
-from lib.extractors import opgg_extractor
+from lib.constants import GAME_CFG_PATH
 from lib.extractors.league_of_graphs import get_match_recording_settings
 from lib.managers.programs_manager import running
-from lib.utils import pretty_log, cd
+from lib.utils import cd
 
 RECORDING_COMMAND = '{F10 down}{F10 up}'
 FOG_KEYBINDS = {
@@ -23,23 +24,28 @@ BUGSPLAT_EXE = 'BsSndRpt.exe'
 KEYBINDS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0']
 LOCALE = 'en_GB'
 
+
 # HOSTS = {
 #     Region.korea.value: 'kr3.spectator.op.gg:80',
 #     Region.europe_west.value: 'f2.spectator.op.gg:80'
 # }
 
 
-@pretty_log
-def start_game(region, match_id):
-    host, observer_key = get_match_recording_settings(match_id, region)
-    if not host:
-        return
+def start_game(match_data):
+    region = match_data.get('region')
+    match_id = match_data.get('match_id')
+    players = list(match_data.get('players_data').keys())
+    random_player = players[0]
+    host, observer_key = get_match_recording_settings(match_id, region, random_player)
 
     game_arguments = f"spectator {host} {observer_key} {match_id} {region}-{random.randint(0, 32767)}{random.randint(0, 32767)}"
     print(game_arguments)
     with cd(LEAGUE_PATH + GAME):
         fnull = open(os.devnull, 'w')
-        subprocess.Popen([LEAGUE_EXE, game_arguments, "-GameBaseDir=..", f"-Locale={LOCALE}"], stdout=fnull, stderr=subprocess.STDOUT)
+        subprocess.Popen([LEAGUE_EXE, game_arguments, "-GameBaseDir=..", f"-Locale={LOCALE}"], stdout=fnull,
+                         stderr=subprocess.STDOUT)
+
+
 #
 # def start_game(region, match_id):
 #     with cd('C:\Riot Games\League of Legends\Game'):
@@ -93,3 +99,25 @@ def enable_runes():
     print('[LEAGUE MANAGER] - Enabling Runes')
 
     keyboard.send_keys('{c down}{c up}')
+
+
+
+
+def enable_settings():
+    config = configparser.ConfigParser()
+    config.read(GAME_CFG_PATH)
+    config['Performance']['ShadowQuality'] = "4"
+    config['General']['windowmode'] = "2"
+    # config['General']['EnableReplayApi'] = "1"
+    with open(GAME_CFG_PATH, 'w') as configfile:
+        config.write(configfile)
+
+
+def disable_settings():
+    config = configparser.ConfigParser()
+    config.read(GAME_CFG_PATH)
+    config['Performance']['ShadowQuality'] = "0"
+    config['General']['windowmode'] = "0"
+
+    with open(GAME_CFG_PATH, 'w') as configfile:
+        config.write(configfile)

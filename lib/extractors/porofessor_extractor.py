@@ -21,13 +21,9 @@ BASE_URL = ' http://porofessor.gg/'
 SPECTATE_PLAYER_PAGE = 'partial/live-partial/'
 NOT_IN_GAME = 'The summoner is not in-game, please retry later. The game must be on the loading screen or it must have started.'
 
-REQUEST_RECORDING = 'https://www.leagueofgraphs.com/api/record-replay/SWJvTlpyUVJBTjh0WkY1UjNocEN2WlpwV2FXZHZMRDFiZVQ3MnU5K1dmVT0='
-
 
 class PorofessorNoResponseException(Exception):
     pass
-
-
 
 
 def extract_recording_url(html):

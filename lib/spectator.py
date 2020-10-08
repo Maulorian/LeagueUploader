@@ -12,9 +12,8 @@ from lib.builders.title_builder import get_title
 from lib.constants import ROLE_INDEXES
 from lib.extractors.opgg_extractor import get_pro_players_info
 from lib.managers import replay_api_manager, league_manager, upload_manager, programs_manager
-from lib.managers.game_cfg_manager import enable_settings, disable_settings
-from lib.managers.league_manager import start_game
-from lib.managers.league_waiter_manager import wait_for_game_launched, wait_for_game_loaded, wait_finish, \
+from lib.managers.league_manager import start_game, enable_settings, disable_settings
+from lib.managers.league_waiter_manager import wait_for_game_launched, wait_finish, \
     GameCrashedException, LaunchCrashedException, WAIT_TIME, wait_for_game_start
 from lib.managers.recorded_games_manager import delete_game
 from lib.managers.replay_api_manager import get_player_position, PortNotFoundException
@@ -52,28 +51,26 @@ def wait_summoners_spawned():
 
 
 def handle_game(match_data):
-    match_id = match_data.get('match_id')
-    region = match_data.get('region')
     programs_manager.open_program(programs_manager.OBS_EXE)
 
     enable_settings()
 
     time.sleep(WAIT_TIME)
 
-    start_game(region, match_id)
+    start_game(match_data)
 
     wait_for_game_launched()
     replay_api_manager.enable_recording_settings()
 
-    # wait_for_game_loaded()
-    wait_for_game_start()
-    start = time.time()
+    game_time_when_started = wait_for_game_start()
+    real_time_when_started = time.time()
 
     league_manager.toggle_recording()
     recording_start_time = time.time()
+    time_to_toggle = recording_start_time - real_time_when_started
+    game_time_when_started_recording = game_time_when_started + time_to_toggle
 
-    game_time_when_started_recording = time.time() - start
-    print(f'took {game_time_when_started_recording} to toggle recording')
+    print(f'took {time_to_toggle} to toggle recording, and was toggled when game was at {game_time_when_started_recording}')
     recording_times = dict([(0, game_time_when_started_recording)])
 
     wait_summoners_spawned()

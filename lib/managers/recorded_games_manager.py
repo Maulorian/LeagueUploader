@@ -13,9 +13,11 @@ def write_to_file(recorded_games):
     with open(constants.RECORDED_GAMES, 'w') as f:
         json.dump(recorded_games, f, indent=2)
 
+
 def already_enabled(match_id):
     recorded_games = get_recorded_games()
     return any(g.get('match_id') == match_id for g in recorded_games)
+
 
 def delete_game(match_id):
     print(f'Deleting {match_id} from the file')
@@ -32,4 +34,4 @@ def add_game(game):
         write_to_file(recorded_games)
         return
 
-    print('Match already recording on opgg.')
+    print('Match already recording')

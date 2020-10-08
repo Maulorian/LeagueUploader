@@ -1,6 +1,6 @@
 VIDEOS_PATH = 'D:\\LeagueReplays\\'
 PROJECT_PATH = 'C:\\Users\\Alex\\PycharmProjects\\LeagueUploader\\'
-
+GAME_CFG_PATH = 'C:\\Riot Games\\League of Legends\\Config\\game.cfg'
 JSON_PATH = PROJECT_PATH + 'json/'
 
 RECORDED_GAMES = JSON_PATH + 'recorded_games.json'

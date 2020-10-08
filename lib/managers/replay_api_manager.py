@@ -96,13 +96,18 @@ def disable_recording_settings():
 
 
 def get_current_game_time():
-    url = f'{get_base_url()}/replay/playback'
-    r = requests.get(url, verify=False)
-    response_json = r.json()
+    response_json = get_game_playback_data()
     print(response_json)
     t = response_json['time']
     # print(f'[REPLAY-API] - Getting Current Game Time: {t}')
     return t
+
+
+def get_game_playback_data():
+    url = f'{get_base_url()}/replay/playback'
+    r = requests.get(url, verify=False)
+    response_json = r.json()
+    return response_json
 
 
 def get_game_render_data():
@@ -158,15 +163,20 @@ def game_finished() -> bool:
     return last_event.get('EventName') == GAME_END
 
 
-def game_started() -> bool:
-    events = get_events()
-    if events is None:
-        return False
+def game_time_when_started() -> bool:
+    # events = get_events()
+    # if events is None:
+    #     return False
+    #
+    # if len(events) == 0:
+    #     return False
+    # first_event = events[0]
+    # print(f'{first_event=}')
+    # return first_event.get('EventName') == GAME_START
+    response_json = get_game_playback_data()
+    if response_json.get('length') != 0:
+        return response_json.get('time')
 
-    if len(events) == 0:
-        return False
-
-    return events[0].get('EventName') == GAME_START
 
 
 def get_player_items(player_data):

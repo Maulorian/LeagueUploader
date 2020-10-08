@@ -16,7 +16,7 @@ from lib.spectator import spectate, DiskFullException, wait_seconds
 
 cassiopeia.set_riot_api_key(os.getenv("RIOT_KEY"))
 op_gg_recording_enabler_thread = threading.Thread(target=recording_enabler.loop)
-op_gg_recording_enabler_thread.start()
+# op_gg_recording_enabler_thread.start()
 
 while True:
     try:

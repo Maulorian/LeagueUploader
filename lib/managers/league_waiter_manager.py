@@ -4,7 +4,7 @@ import time
 import requests
 
 from lib.managers.league_manager import bugsplat
-from lib.managers.replay_api_manager import get_current_game_time, game_finished, game_launched, game_started, \
+from lib.managers.replay_api_manager import get_current_game_time, game_finished, game_launched, game_time_when_started, \
     game_paused
 from lib.utils import wait_seconds, pretty_print
 
@@ -40,7 +40,7 @@ def wait_finish(recording_times, game_time_when_started_recording, recording_sta
         # total_delay += delta_delay
         # recording_times[current_game_time] = total_delay
         recording_times[current_time_passed_recording] = current_game_time
-        # pretty_print(recording_times)
+        pretty_print(recording_times)
 
         if bugsplat():
             raise GameCrashedException
@@ -63,7 +63,6 @@ def wait_for_game_launched():
     start = time.time()
     while True:
         time_passed = time.time() - start
-        print(time_passed)
         if time_passed > 30:
             raise LaunchCrashedException
         try:
@@ -75,11 +74,10 @@ def wait_for_game_launched():
 
         except (requests.exceptions.ConnectionError, subprocess.CalledProcessError):
             # print("[SPECTATOR] - Game not yet launched")
-            time.sleep(1)
+            pass
 
-
-def wait_for_game_loaded():
-    print("[SPECTATOR] - Waiting for game to load..")
+def wait_for_game_start():
+    print("[SPECTATOR] - Waiting for game to start..")
 
     start = time.time()
     while True:
@@ -87,25 +85,29 @@ def wait_for_game_loaded():
         print(time_passed)
         if time_passed > 30:
             raise LaunchCrashedException
-        if game_started():
-            print("[SPECTATOR] - Game has loaded")
-            break
+        game_time = game_time_when_started()
+        if game_time:
+            print(f"[SPECTATOR] - Game has started at {game_time}")
+            return game_time
         if bugsplat():
             raise GameCrashedException
-        wait_seconds(WAIT_TIME)
 
 
-def wait_for_game_start():
-    print("[SPECTATOR] - Waiting for game to start..")
-
-    start = time.time()
-
-    while True:
-        time_passed = time.time() - start
-        if time_passed > 30:
-            raise LaunchCrashedException
-        if not game_paused():
-            break
-        if bugsplat():
-            raise GameCrashedException
-    print(f"[SPECTATOR] - Game has started")
+# def wait_for_game_start():
+#     print("[SPECTATOR] - Waiting for game to start..")
+#
+#     start = time.time()
+#     start_game_time = get_current_game_time()
+#
+#     while True:
+#         current_game_time = get_current_game_time()
+#         if current_game_time > start_game_time:
+#             break
+#
+#         time_passed = time.time() - start
+#         if time_passed > 30:
+#             raise LaunchCrashedException
+#
+#         if bugsplat():
+#             raise GameCrashedException
+#     print(f"[SPECTATOR] - Game has started")
