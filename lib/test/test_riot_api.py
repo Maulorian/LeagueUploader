@@ -5,7 +5,7 @@ import unittest
 load_dotenv()
 
 from cassiopeia import Region, get_summoner, set_riot_api_key, get_match
-from lib.managers.riot_api_manager import get_all_challenger_players, get_player_with_most_kills, get_finished_recorded_games
+from lib.managers.riot_api_manager import get_all_challenger_players
 from lib.utils import pretty_print
 
 set_riot_api_key(os.getenv("RIOT_KEY"))
@@ -37,19 +37,10 @@ class TestRiotApi(unittest.TestCase):
             for part in match.participants:
                 print(part.summoner.name, part.champion.name)
 
-    def test_get_player_with_most_kills(self):
-        region = Region.europe_west.value
-        finished_games = get_finished_recorded_games()
-        summoner_name, match = get_player_with_most_kills(finished_games)
-
-
-    def test_get_finished_recorded_games(self):
-        pretty_print(get_finished_recorded_games())
 
     def test_get_match(self):
-        match_id = 4853936961
-        region = Region.europe_west
+        match_id = 4703064818
+        region = Region.korea
         match = get_match(id=match_id, region=region)
-        print(match.participants)
-        observer_key = match.observer_key
-        print(observer_key)
+        for p in match.participants:
+            print(p.summoner.name)

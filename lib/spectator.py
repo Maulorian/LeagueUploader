@@ -6,18 +6,22 @@ import time
 import traceback
 
 import requests
+from cassiopeia import Side, cassiopeia, Queue
 
+import lib.extractors.porofessor_extractor as porofessor_extractor
+import lib.managers.programs_manager as programs_manager
 from lib.builders import description_builder, tags_builder
 from lib.builders.title_builder import get_title
 from lib.constants import ROLE_INDEXES
+from lib.extractors.league_of_graphs import get_players_data
 from lib.extractors.opgg_extractor import get_pro_players_info
-from lib.managers import replay_api_manager, league_manager, upload_manager, programs_manager
+from lib.managers import replay_api_manager, league_manager, upload_manager, programs_manager, vpn_manager
 from lib.managers.league_manager import start_game, enable_settings, disable_settings
 from lib.managers.league_waiter_manager import wait_for_game_launched, wait_finish, \
     GameCrashedException, LaunchCrashedException, WAIT_TIME, wait_for_game_start
 from lib.managers.recorded_games_manager import delete_game
 from lib.managers.replay_api_manager import get_player_position, PortNotFoundException
-from lib.managers.riot_api_manager import get_current_game_version
+from lib.managers.riot_api_manager import get_current_game_version, add_rank_information_to_player
 from lib.managers.upload_manager import VIDEOS_PATH
 from lib.utils import pretty_log, wait_seconds
 
@@ -39,7 +43,6 @@ class GameNotBeginningFromStartException(Exception):
 
 def wait_summoners_spawned():
     print("[SPECTATOR] - Waiting for Summoners to spawn..")
-
 
     while True:
         current_time = replay_api_manager.get_current_game_time()
@@ -70,7 +73,8 @@ def handle_game(match_data):
     time_to_toggle = recording_start_time - real_time_when_started
     game_time_when_started_recording = game_time_when_started + time_to_toggle
 
-    print(f'took {time_to_toggle} to toggle recording, and was toggled when game was at {game_time_when_started_recording}')
+    print(
+        f'took {time_to_toggle} to toggle recording, and was toggled when game was at {game_time_when_started_recording}')
     recording_times = dict([(0, game_time_when_started_recording)])
 
     wait_summoners_spawned()
@@ -99,14 +103,15 @@ def handle_game(match_data):
     close_programs()
 
 
-
-
-
-
 def close_programs():
     programs_manager.close_program(programs_manager.OBS_EXE)
     programs_manager.close_program(league_manager.LEAGUE_EXE)
     programs_manager.close_program(league_manager.BUGSPLAT_EXE)
+    programs_manager.close_program(programs_manager.PROTON_VPN)
+    programs_manager.close_program(programs_manager.PROTON_VPN)
+    programs_manager.close_program(programs_manager.PROTON_VPN_SERVICE)
+    programs_manager.close_program(programs_manager.PROTON_UPDATE_SERVICE)
+    programs_manager.close_program(programs_manager.OPEN_VPN)
     disable_settings()
 
 
@@ -122,35 +127,38 @@ def handle_postgame(match_data):
     delete_game(match_id)
 
     total_space, used_space, free_space = shutil.disk_usage("D:")
-    total_space, used_space, free_space = (total_space // (2 ** 30)), (used_space // (2 ** 30)), (free_space // (2 ** 30))
+    total_space, used_space, free_space = (total_space // (2 ** 30)), (used_space // (2 ** 30)), (
+                free_space // (2 ** 30))
     if free_space < 1:
         raise DiskFullException(free_space)
 
+
 def spectate(player_data):
     summoner_name = player_data.get('summoner_name')
-    game_data = player_data.get('game_data')
-    kills = player_data.get('kills')
+    mongo_game = player_data.get('mongo_game')
     close_programs()
 
-    region = game_data.get('region')
-    match_id = game_data.get('match_id')
-    observer_key = game_data.get('observer_key')
-    players_data = game_data.get('players_data')
+    region = mongo_game.get('region')
+    match_id = mongo_game.get('match_id')
+    players_data = mongo_game.get('players_data')
+    add_rank_information_to_player(players_data, region)
 
 
+    players_order = get_players_data(match_id, region)
     player_data = players_data[summoner_name]
-    player_position = list(players_data.keys()).index(summoner_name)
+    kills = player_data.get('kills')
+    player_position = players_order.index(summoner_name)
     player_champion = player_data['champion']
 
     enemy_position = (player_position + 5) % 10
-    enemy_summoner_name = list(players_data.keys())[enemy_position]
+    enemy_summoner_name = players_order[enemy_position]
     enemy_champion = players_data[enemy_summoner_name].get('champion')
 
     role = ROLE_INDEXES[player_position % 5]
     tier = player_data.get('tier')
     lp = player_data.get('lp')
     version = get_current_game_version()
-    side = player_data.get('side')
+    side = Side.blue if player_position < 5 else Side.red
     match_data = {
         'players_data': players_data,
         'player_champion': player_champion,
@@ -162,7 +170,6 @@ def spectate(player_data):
         'lp': lp,
         'version': version,
         'match_id': match_id,
-        'observer_key': observer_key,
         'side': side,
         'kills': kills
     }

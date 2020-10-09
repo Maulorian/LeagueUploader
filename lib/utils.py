@@ -2,6 +2,8 @@ import os
 import pprint
 import time
 
+from requests import get
+
 
 def pretty_log(function):
     def wrapper(*args):
@@ -23,9 +25,12 @@ def pretty_print(string):
     pp = pprint.PrettyPrinter(indent=2)
     pp.pprint(string)
 
+
 def wait_seconds(WAIT_TIME):
     # print(f"[SPECTATOR] - Waiting {WAIT_TIME}")
     time.sleep(WAIT_TIME)
+
+
 class cd:
     """Context manager for changing the current working directory"""
 
@@ -38,3 +43,16 @@ class cd:
 
     def __exit__(self, etype, value, traceback):
         os.chdir(self.savedPath)
+
+
+def pretty(d, indent=0):
+    for key, value in d.items():
+        print('\t' * indent + str(key))
+        if isinstance(value, dict):
+            pretty(value, indent + 1)
+        else:
+            print('\t' * (indent + 1) + str(value))
+
+
+def get_public_ip_address():
+    return get('https://api.ipify.org').text

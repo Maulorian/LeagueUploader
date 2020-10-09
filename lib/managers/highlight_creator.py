@@ -12,15 +12,26 @@ BARON_KILL = 'baron_kill'
 ASSIST = 'assist'
 KILL = 'kill'
 GAME_END = 'game_end'
+GAME_START = 'game_start'
 DEATH = 'death'
 TURRET_KILL = 'turret_kill'
 
 MAX_EVENT_GAP = 30
 MAX_NOT_SPED_UP_EVENT_GAP = 10
-BEFORE_EVENT_TIME = 15
 SPEED_UP_FACTOR = 2
 
 SLOW_DOWN_FACTOR = 1/2
+
+BEFORE_EVENT_TIMES = {
+    GAME_END: 10,
+    GAME_START: 0,
+    KILL: 20,
+    DEATH: 10,
+    ASSIST: 7.5,
+    INHIBITOR_KILL: 5,
+    BARON_KILL: 5,
+    TURRET_KILL: 5
+}
 
 AFTER_EVENT_TIMES = {
     GAME_END: 0,
@@ -100,9 +111,10 @@ class HighlightCreator:
 
         for event in self.events:
             event_type = event.get('type')
+            before_event_time = BEFORE_EVENT_TIMES.get(event_type)
             after_event_time = AFTER_EVENT_TIMES.get(event_type)
             clip_data = {
-                'start_time': event.get('recording_time') - BEFORE_EVENT_TIME,
+                'start_time': event.get('recording_time') - before_event_time,
                 'end_time': event.get('recording_time') + after_event_time
             }
             clips_data.append(clip_data)

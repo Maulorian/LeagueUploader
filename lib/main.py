@@ -1,22 +1,24 @@
-import os
-import threading
-import traceback
-
-import cassiopeia
 from dotenv import load_dotenv
 
+from lib.utils import pretty, pretty_print
+
 load_dotenv()
+import os
+import sys
 
-from lib.extractors import recording_enabler
+sys.path.append('C:\\Users\\Alex\\PycharmProjects\\LeagueUploader')
+
+import traceback
+import cassiopeia
+
 from lib.managers.player_finder_manager import get_finished_recorded_games, get_player_with_most_kills
-
-
 from lib.spectator import spectate, DiskFullException, wait_seconds
 
-cassiopeia.set_riot_api_key(os.getenv("RIOT_KEY"))
-op_gg_recording_enabler_thread = threading.Thread(target=recording_enabler.loop)
-# op_gg_recording_enabler_thread.start()
-
+config = cassiopeia.get_default_config()
+config['pipeline']['RiotAPI']['limit_sharing'] = 0.5
+config['pipeline']['RiotAPI']['api_key'] = os.getenv("RIOT_KEY")
+cassiopeia.apply_settings(config)
+pretty_print(config)
 while True:
     try:
         finished_games = get_finished_recorded_games()
@@ -33,5 +35,3 @@ while True:
     except Exception as e:
         traceback.print_exc()
         break
-
-

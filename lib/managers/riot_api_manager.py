@@ -1,7 +1,7 @@
 import os
 
 import requests
-from cassiopeia import Region
+from cassiopeia import Region, Queue, cassiopeia
 
 SCHEMA = 'https://'
 
@@ -54,10 +54,20 @@ def get_match(math_id, region):
         return
     return r.json()
 
+
 def get_current_game_version():
     r = requests.get('https://raw.githubusercontent.com/CommunityDragon/Data/master/patches.json')
     version = r.json()['patches'][-1]['name']
     return version
 
 
-
+def add_rank_information_to_player(players_data, region):
+    print(players_data)
+    for name, player_data in players_data.items():
+        summoner = cassiopeia.get_summoner(name=name, region=region)
+        ranked_league = summoner.league_entries[Queue.ranked_solo_fives]
+        tier = ranked_league.tier
+        lp = ranked_league.league_points
+        player_data['tier'] = tier
+        player_data['lp'] = lp
+    return players_data

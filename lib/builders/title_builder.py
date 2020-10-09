@@ -1,4 +1,4 @@
-TITLE_CANVAS = '{player_champion} {role} vs {enemy_champion} - {name} - {region} {tier} ({lp} LP) ' \
+TITLE_CANVAS = '{player_champion} {role} {kills} vs {enemy_champion} - {name} - {region} {tier} ({lp} LP) ' \
                'Patch {version}'
 
 
@@ -10,6 +10,7 @@ def get_title(match_info):
     player_champion = match_info.get('player_champion')
     role = match_info.get('role')
     name = match_info.get('summoner_name')
+    kills = match_info.get('kills')
 
     pro_player_info = match_info.get('pro_player_info')
     if pro_player_info:
@@ -28,6 +29,7 @@ def get_title(match_info):
 
     return TITLE_CANVAS.format(player_champion=player_champion,
                                role=role,
+                               kills=kills,
                                name=name,
                                enemy_champion=enemy_champion,
                                region=region,

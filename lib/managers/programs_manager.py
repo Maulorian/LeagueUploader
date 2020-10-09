@@ -9,10 +9,16 @@ DISCORD_EXE = 'Discord.exe'
 CHROME_EXE = 'chrome.exe'
 OBS_EXE = 'obs64.exe'
 
+PROTON_VPN = 'ProtonVPN.exe'
+PROTON_VPN_SERVICE = 'ProtonVPNService.exe'
+PROTON_UPDATE_SERVICE = 'ProtonVPN.UpdateService.eXE'
+OPEN_VPN = 'openvpn.exe'
+
 DIRECTORIES = {
     CHROME_EXE: "C:\\Program Files (x86)\\Google\\Chrome\\Application",
     DISCORD_EXE: "C:\\Users\\Alex\\AppData\\Local\\Discord\\app-0.0.307",
-    OBS_EXE: 'C:\\Program Files\\obs-studio\\bin\\64bit'
+    OBS_EXE: 'C:\\Program Files\\obs-studio\\bin\\64bit',
+    PROTON_VPN: 'C:\Program Files (x86)\Proton Technologies\ProtonVPN'
 
 }
 
@@ -29,10 +35,11 @@ def running(processName):
 @pretty_log
 def close_program(exe):
     if not running(exe):
-        return
+        return False
     close_command = f'TASKKILL /F /IM \"{exe}\"'
     print(close_command)
     subprocess.Popen(close_command, shell=True)
+    return True
 
 @pretty_log
 def open_program(exe):

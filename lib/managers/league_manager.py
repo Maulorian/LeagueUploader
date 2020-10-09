@@ -9,6 +9,7 @@ from pywinauto.application import Application
 
 from lib.constants import GAME_CFG_PATH
 from lib.extractors.league_of_graphs import get_match_recording_settings
+from lib.managers import vpn_manager
 from lib.managers.programs_manager import running
 from lib.utils import cd
 
@@ -32,6 +33,8 @@ LOCALE = 'en_GB'
 
 
 def start_game(match_data):
+    vpn_manager.connect()
+
     region = match_data.get('region')
     match_id = match_data.get('match_id')
     players = list(match_data.get('players_data').keys())

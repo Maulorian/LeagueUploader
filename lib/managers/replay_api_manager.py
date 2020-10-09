@@ -252,6 +252,10 @@ def get_player_events(summoner_name, recording_times):
 
 
 def get_formated_event(event, summoner_name, champions):
+    if event.get('EventName') == GAME_START:
+        return {
+            'type': 'game_start'
+        }
     if event.get('EventName') == GAME_END:
         return {
             'type': 'game_end'
