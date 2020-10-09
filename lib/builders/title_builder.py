@@ -1,16 +1,16 @@
-TITLE_CANVAS = '{player_champion} {role} {kills} vs {enemy_champion} - {name} - {region} {tier} ({lp} LP) ' \
+TITLE_CANVAS = '{player_champion} {role} vs {enemy_champion} - {kills} - {name} - {region} {tier} ({lp} LP) ' \
                'Patch {version}'
 
 
 def manual_replace(s, char, index):
-    return s[:index] + char + s[index +1:]
+    return s[:index] + char + s[index + 1:]
 
 
 def get_title(match_info):
     player_champion = match_info.get('player_champion')
     role = match_info.get('role')
     name = match_info.get('summoner_name')
-    kills = match_info.get('kills')
+    kills = f'{match_info.get("kills")} kills'
 
     pro_player_info = match_info.get('pro_player_info')
     if pro_player_info:

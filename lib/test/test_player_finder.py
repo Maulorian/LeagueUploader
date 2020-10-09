@@ -15,28 +15,10 @@ cassiopeia.set_riot_api_key(os.getenv("RIOT_KEY"))
 
 
 class TestPlayerFinder(unittest.TestCase):
+
     def testaze(self):
-        finished_games = []
-        games = get_recorded_games()[:4]
-        for i, game in enumerate(games):
-            match_id = game.get('match_id')
-            region = game.get('region')
+        finished_games = get_finished_recorded_games()
 
-            try:
-                match = cassiopeia.get_match(match_id, region=region)
-
-                if match.is_remake:
-                    continue
-            except RuntimeError:
-                continue
-            except datapipelines.common.NotFoundError:
-                continue
-            print(f'[{i}/{len(games)}] Game {match_id} is finished')
-            data = {
-                'cass_match': match,
-                'mongo_game': game
-            }
-            finished_games.append(data)
         player_data = get_player_with_most_kills(finished_games)
 
     def test_get_player_with_most_kills(self):

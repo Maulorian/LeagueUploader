@@ -2,6 +2,7 @@ import os
 import pprint
 import time
 
+import requests
 from requests import get
 
 
@@ -55,4 +56,9 @@ def pretty(d, indent=0):
 
 
 def get_public_ip_address():
-    return get('https://api.ipify.org').text
+    while True:
+        try:
+            ip = get('https://api.ipify.org').text
+            return ip
+        except requests.exceptions.ConnectionError:
+            time.sleep(1)

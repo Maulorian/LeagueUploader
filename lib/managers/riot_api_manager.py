@@ -65,9 +65,12 @@ def add_rank_information_to_player(players_data, region):
     print(players_data)
     for name, player_data in players_data.items():
         summoner = cassiopeia.get_summoner(name=name, region=region)
-        ranked_league = summoner.league_entries[Queue.ranked_solo_fives]
+        try:
+            ranked_league = summoner.league_entries.fives
+        except ValueError:
+            continue
         tier = ranked_league.tier
         lp = ranked_league.league_points
-        player_data['tier'] = tier
+        player_data['tier'] = tier.value.title()
         player_data['lp'] = lp
     return players_data

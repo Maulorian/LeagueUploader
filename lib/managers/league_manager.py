@@ -39,9 +39,9 @@ def start_game(match_data):
     match_id = match_data.get('match_id')
     players = list(match_data.get('players_data').keys())
     random_player = players[0]
-    host, observer_key = get_match_recording_settings(match_id, region, random_player)
+    host, observer_key, platform = get_match_recording_settings(match_id, region, random_player)
 
-    game_arguments = f"spectator {host} {observer_key} {match_id} {region}-{random.randint(0, 32767)}{random.randint(0, 32767)}"
+    game_arguments = f"spectator {host} {observer_key} {match_id} {platform}-{random.randint(0, 32767)}{random.randint(0, 32767)}"
     print(game_arguments)
     with cd(LEAGUE_PATH + GAME):
         fnull = open(os.devnull, 'w')

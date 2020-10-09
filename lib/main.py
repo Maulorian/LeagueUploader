@@ -17,7 +17,6 @@ from lib.spectator import spectate, DiskFullException, wait_seconds
 config = cassiopeia.get_default_config()
 config['pipeline']['RiotAPI']['limiting_share'] = 0.5
 config['pipeline']['RiotAPI']['api_key'] = os.getenv("RIOT_KEY")
-pretty_print(config)
 
 cassiopeia.apply_settings(config)
 while True:

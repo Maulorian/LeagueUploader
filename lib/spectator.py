@@ -144,21 +144,23 @@ def spectate(player_data):
     add_rank_information_to_player(players_data, region)
 
 
-    players_order = get_players_data(match_id, region)
+    players_dict_in_order = get_players_data(match_id, region)
     player_data = players_data[summoner_name]
     kills = player_data.get('kills')
-    player_position = players_order.index(summoner_name)
-    player_champion = player_data['champion']
+    dmg = player_data.get('dmg')
+    players_name_in_order = list(players_dict_in_order.keys())
+    player_position = players_name_in_order.index(summoner_name)
+    player_champion = players_dict_in_order[summoner_name]
 
     enemy_position = (player_position + 5) % 10
-    enemy_summoner_name = players_order[enemy_position]
-    enemy_champion = players_data[enemy_summoner_name].get('champion')
+    enemy_summoner_name = players_name_in_order[enemy_position]
+    enemy_champion = players_dict_in_order[enemy_summoner_name]
 
     role = ROLE_INDEXES[player_position % 5]
     tier = player_data.get('tier')
     lp = player_data.get('lp')
     version = get_current_game_version()
-    side = Side.blue if player_position < 5 else Side.red
+    side = Side.blue.value if player_position < 5 else Side.red.value
     match_data = {
         'players_data': players_data,
         'player_champion': player_champion,
@@ -171,7 +173,8 @@ def spectate(player_data):
         'version': version,
         'match_id': match_id,
         'side': side,
-        'kills': kills
+        'kills': kills,
+        'dmg': dmg
     }
     pro_players_info = get_pro_players_info(region)
 
@@ -222,13 +225,15 @@ def spectate(player_data):
         'summonerSpells': match_data['summonerSpells'],
         'file_name': match_data['file_name'],
         'region': region,
-        'tier': tier,
+        'tier': tier.value,
         'lp': lp,
         'role': role,
         'events': match_data['events'],
         'match_id': match_data['match_id'],
-        'kills': match_data['kills']
+        'kills': match_data['kills'],
+        'dmg': match_data['dmg'],
     }
+    print(metadata)
     handle_postgame(metadata)
     programs_manager.open_program(programs_manager.CHROME_EXE)
     programs_manager.open_program(programs_manager.DISCORD_EXE)

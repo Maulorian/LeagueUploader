@@ -5,7 +5,7 @@ import unittest
 load_dotenv()
 
 from cassiopeia import Region, get_summoner, set_riot_api_key, get_match
-from lib.managers.riot_api_manager import get_all_challenger_players
+from lib.managers.riot_api_manager import get_all_challenger_players, add_rank_information_to_player
 from lib.utils import pretty_print
 
 set_riot_api_key(os.getenv("RIOT_KEY"))
@@ -44,3 +44,10 @@ class TestRiotApi(unittest.TestCase):
         match = get_match(id=match_id, region=region)
         for p in match.participants:
             print(p.summoner.name)
+
+    def test_add_rank_information_to_player(self):
+        region = Region.europe_west
+        players_data = {
+            'AeQ+Valkyrie': {}
+        }
+        print(add_rank_information_to_player(players_data, region=region))

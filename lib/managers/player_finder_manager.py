@@ -1,8 +1,9 @@
 import datapipelines
-from cassiopeia import cassiopeia, Queue
+from cassiopeia import cassiopeia, Queue, Region
 
 from lib.managers import vpn_manager
 from lib.managers.recorded_games_manager import delete_game, get_recorded_games, update_game
+from lib.utils import pretty_print
 
 GAMES_TO_KEEP = 20
 
@@ -14,43 +15,41 @@ def get_finished_recorded_games():
     for i, mongo_game in enumerate(games):
         match_id = mongo_game.get('match_id')
         region = mongo_game.get('region')
-        players_data = mongo_game.get('players_data')
         data = {
             'mongo_game': mongo_game
         }
-        if players_data is None:
+
+        is_finished = mongo_game.get('is_finished')
+
+        if not is_finished:
             try:
-                match = cassiopeia.get_match(match_id, region=region)
-
-                if match.is_remake:
-                    continue
-            # except RuntimeError:
-            #     continue
+                cass_match = cassiopeia.get_match(match_id, region=region)
+                is_remake = cass_match.is_remake
             except datapipelines.common.NotFoundError:
+                print(f'[{i}/{len(games)}] Game {match_id} not finished')
                 continue
-            data['cass_match'] = match
-            print(f'[{i}/{len(games)}] Game {match_id} is finished')
-        else:
-            print(f'[{i}/{len(games)}] Game {match_id} was already checked finished')
+            data['cass_match'] = cass_match
 
+        print(f'[{i}/{len(games)}] Game {match_id} is finished')
+        mongo_game['is_finished'] = True
         finished_games.append(data)
     return finished_games
 
 
 def get_player_with_most_kills(finished_games_data):
     players_kills = []
-    not_updated_mongo_game = []
+    to_update = []
 
     for game_data in finished_games_data:
 
         mongo_game = game_data.get('mongo_game')
         players_data = mongo_game.get('players_data')
 
-        print(players_data)
-        if players_data is None:
+        if not players_data:
             cass_match = game_data.get('cass_match')
             match_id = cass_match.id
-            not_updated_mongo_game.append(match_id)
+            to_update.append(match_id)
+
             participants = cass_match.participants
             players_data = {}
             for participant in participants:
@@ -59,29 +58,36 @@ def get_player_with_most_kills(finished_games_data):
                     summoner_name = summoner.name
                 except AttributeError:
                     continue
-                kills = participant.stats.kills
-
+                stats = participant.stats
+                kills = stats.kills
+                dmg = stats.total_damage_dealt_to_champions
                 players_data[summoner_name] = {
                     'kills': kills,
+                    'dmg': dmg,
                 }
             mongo_game['players_data'] = players_data
 
         for summoner_name, player_data in players_data.items():
             kills = player_data.get('kills')
-            players_kills.append({
+            dmg = player_data.get('dmg')
+            player_info = {
                 'summoner_name': summoner_name,
                 'mongo_game': mongo_game,
-                'kills': kills
-            })
+                'kills': kills,
+                'dmg': dmg,
+            }
+            players_kills.append(player_info)
 
-    players_kills_sorted = [player for player in
-                            sorted(players_kills, key=lambda player: player.get('kills'), reverse=True)]
-    player_with_most_kills = players_kills_sorted[0]
+    sorted_players = [player for player in
+                      sorted(players_kills, key=lambda player: player.get('dmg'), reverse=True)]
+    for player in sorted_players:
+        print(player.get('summoner_name'), player.get('dmg'), player.get('kills'))
+    player_with_most_kills = sorted_players[0]
 
-    top_mongo_games = keep_top_games(players_kills_sorted)
-    to_update_top_games = top_mongo_games
-    # to_update_top_games = {match_id: mongo_game for (match_id, mongo_game) in top_mongo_games.items() if match_id in not_updated_mongo_game}
-    update_top_games(to_update_top_games)
+    games = {player_data.get('mongo_game').get('match_id'): player_data.get('mongo_game') for player_data in
+             sorted_players if player_data.get('mongo_game').get('match_id') in to_update}
+
+    update_top_games(games)
     return player_with_most_kills
 
 
@@ -89,21 +95,3 @@ def update_top_games(games):
     for match_id, mongo_game in games.items():
         update_game(match_id, mongo_game)
 
-
-def keep_top_games(players_kills_sorted):
-    best_mongo_games = {}
-    for player_data in players_kills_sorted:
-        print(player_data.get('summoner_name'), player_data.get('kills'))
-
-        mongo_game = player_data.get('mongo_game')
-        match_id = player_data.get('mongo_game').get('match_id')
-
-        best_mongo_games[match_id] = mongo_game
-
-    mongo_game_ids_delete = list(best_mongo_games.keys())[GAMES_TO_KEEP:]
-    print(f'Deleting {len(mongo_game_ids_delete)} games')
-    for match_id in mongo_game_ids_delete:
-        delete_game(match_id)
-
-    to_keep = list(best_mongo_games.keys())[:GAMES_TO_KEEP]
-    return {match_id: mongo_game for (match_id, mongo_game) in best_mongo_games.items() if match_id in to_keep}

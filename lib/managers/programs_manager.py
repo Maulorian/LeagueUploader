@@ -11,7 +11,7 @@ OBS_EXE = 'obs64.exe'
 
 PROTON_VPN = 'ProtonVPN.exe'
 PROTON_VPN_SERVICE = 'ProtonVPNService.exe'
-PROTON_UPDATE_SERVICE = 'ProtonVPN.UpdateService.eXE'
+PROTON_UPDATE_SERVICE = 'ProtonVPN.UpdateService.exe'
 OPEN_VPN = 'openvpn.exe'
 
 DIRECTORIES = {
@@ -32,20 +32,21 @@ def running(processName):
             pass
     return False
 
-@pretty_log
+
 def close_program(exe):
     if not running(exe):
         return False
     close_command = f'TASKKILL /F /IM \"{exe}\"'
-    print(close_command)
     subprocess.Popen(close_command, shell=True)
     return True
 
-@pretty_log
+
 def open_program(exe):
     if running(exe):
-        return
+        return False
     directory = DIRECTORIES[exe]
     with cd(directory):
-        FNULL = open(os.devnull, 'w')
-        subprocess.Popen([exe], stdout=FNULL, stderr=subprocess.STDOUT)
+        subprocess.Popen([exe], stdout=open(os.devnull, 'w'), stderr=subprocess.STDOUT)
+        print(f'Successfully opened {exe}')
+
+    return True

@@ -12,7 +12,8 @@ SUMMONER = 'summoner/'
 MATCH = 'match/'
 
 REGION_URLS = {
-    'KR': 'kr/'
+    'KR': 'kr/',
+    'EUW': 'euw/'
 }
 
 
@@ -29,7 +30,8 @@ def extract_match_recording_settings(html, match_id):
         raise ObserverKeyNotFoundException
     observer_key = button['data-spectate-encryptionkey']
     host = button['data-spectate-endpoint']
-    return host, observer_key
+    platform = button['data-spectate-platform']
+    return host, observer_key, platform
 
 
 def get_match_recording_settings(match_id, region, random_player):
@@ -61,14 +63,25 @@ def get_players_data(match_id, region):
 
 
 def extract_players_data(html):
-    players_data = ['' for i in range(10)]
+
+    players_data = []
+    players_data_ordered = [{} for i in range(10)]
     soup = BeautifulSoup(html, "html.parser")
 
-    players_html = soup.findAll("div", {'class': 'name'})
-    summoner_names = [div.text.strip() for div in players_html]
+    players_html = soup.find_all("td", {'class': 'summoner_column'})
+    for i, player_html in enumerate(players_html):
+        name = player_html.find("div", {'class': 'name'}).text.strip()
+        champion_name = player_html.find("img")['title']
+        data = {
+            'name': name,
+            'champion_name': champion_name
+        }
+        players_data.append(data)
+
     j = 0
     for i in range(0, 10, 2):
-        players_data[j] = summoner_names[i]
-        players_data[j + 5] = summoner_names[i + 1]
+        players_data_ordered[j] = players_data[i]
+        players_data_ordered[j + 5] = players_data[i + 1]
         j += 1
-    return players_data
+
+    return {player_data.get('name'): player_data.get('champion_name')for player_data in players_data_ordered}
