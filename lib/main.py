@@ -15,10 +15,11 @@ from lib.managers.player_finder_manager import get_finished_recorded_games, get_
 from lib.spectator import spectate, DiskFullException, wait_seconds
 
 config = cassiopeia.get_default_config()
-config['pipeline']['RiotAPI']['limit_sharing'] = 0.5
+config['pipeline']['RiotAPI']['limiting_share'] = 0.5
 config['pipeline']['RiotAPI']['api_key'] = os.getenv("RIOT_KEY")
-cassiopeia.apply_settings(config)
 pretty_print(config)
+
+cassiopeia.apply_settings(config)
 while True:
     try:
         finished_games = get_finished_recorded_games()
