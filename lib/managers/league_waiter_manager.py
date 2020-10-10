@@ -57,6 +57,7 @@ class LaunchCrashedException(Exception):
 class GameCrashedException(Exception):
     pass
 
+
 def wait_for_game_launched():
     print("[SPECTATOR] - Waiting for game to launch..")
 
@@ -76,6 +77,7 @@ def wait_for_game_launched():
             # print("[SPECTATOR] - Game not yet launched")
             pass
 
+
 def wait_for_game_start():
     print("[SPECTATOR] - Waiting for game to start..")
 
@@ -91,7 +93,6 @@ def wait_for_game_start():
             return game_time
         if bugsplat():
             raise GameCrashedException
-
 
 # def wait_for_game_start():
 #     print("[SPECTATOR] - Waiting for game to start..")

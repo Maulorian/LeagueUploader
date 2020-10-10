@@ -21,7 +21,7 @@ from lib.managers.league_waiter_manager import wait_for_game_launched, wait_fini
     GameCrashedException, LaunchCrashedException, WAIT_TIME, wait_for_game_start
 from lib.managers.recorded_games_manager import delete_game
 from lib.managers.replay_api_manager import get_player_position, PortNotFoundException
-from lib.managers.riot_api_manager import get_current_game_version, add_rank_information_to_player
+from lib.managers.riot_api_manager import get_current_game_version, add_rank_information_to_players
 from lib.managers.upload_manager import VIDEOS_PATH
 from lib.utils import pretty_log, wait_seconds
 
@@ -66,11 +66,11 @@ def handle_game(match_data):
     replay_api_manager.enable_recording_settings()
 
     game_time_when_started = wait_for_game_start()
-    real_time_when_started = time.time()
+    time_when_started = time.time()
 
     league_manager.toggle_recording()
     recording_start_time = time.time()
-    time_to_toggle = recording_start_time - real_time_when_started
+    time_to_toggle = recording_start_time - time_when_started
     game_time_when_started_recording = game_time_when_started + time_to_toggle
 
     print(
@@ -107,12 +107,8 @@ def close_programs():
     programs_manager.close_program(programs_manager.OBS_EXE)
     programs_manager.close_program(league_manager.LEAGUE_EXE)
     programs_manager.close_program(league_manager.BUGSPLAT_EXE)
-    programs_manager.close_program(programs_manager.PROTON_VPN)
-    programs_manager.close_program(programs_manager.PROTON_VPN)
-    programs_manager.close_program(programs_manager.PROTON_VPN_SERVICE)
-    programs_manager.close_program(programs_manager.PROTON_UPDATE_SERVICE)
-    programs_manager.close_program(programs_manager.OPEN_VPN)
     disable_settings()
+    vpn_manager.disconnect()
 
 
 class DiskFullException(Exception):
@@ -133,6 +129,24 @@ def handle_postgame(match_data):
         raise DiskFullException(free_space)
 
 
+def add_champion_to_players(players_data, match_id, region):
+    players_dict_in_order = get_players_data(match_id, region)
+    for player_name, champion in players_dict_in_order.items():
+        player_data = players_data[player_name]
+        tier = player_data.get('tier')
+        lp = player_data.get('lp')
+        kills = player_data.get('kills')
+        dmg = player_data.get('dmg')
+
+        players_dict_in_order[player_name] = {
+            'champion': champion,
+            'tier': tier,
+            'lp': lp,
+            'kills': kills,
+            'dmg': dmg,
+        }
+    return players_dict_in_order
+
 def spectate(player_data):
     summoner_name = player_data.get('summoner_name')
     mongo_game = player_data.get('mongo_game')
@@ -141,20 +155,19 @@ def spectate(player_data):
     region = mongo_game.get('region')
     match_id = mongo_game.get('match_id')
     players_data = mongo_game.get('players_data')
-    add_rank_information_to_player(players_data, region)
+    add_rank_information_to_players(players_data, region)
+    players_data = add_champion_to_players(players_data, match_id, region)
 
-
-    players_dict_in_order = get_players_data(match_id, region)
     player_data = players_data[summoner_name]
     kills = player_data.get('kills')
     dmg = player_data.get('dmg')
-    players_name_in_order = list(players_dict_in_order.keys())
+    players_name_in_order = list(players_data.keys())
     player_position = players_name_in_order.index(summoner_name)
-    player_champion = players_dict_in_order[summoner_name]
+    player_champion = players_data[summoner_name].get('champion')
 
     enemy_position = (player_position + 5) % 10
     enemy_summoner_name = players_name_in_order[enemy_position]
-    enemy_champion = players_dict_in_order[enemy_summoner_name]
+    enemy_champion = players_data[enemy_summoner_name].get('champion')
 
     role = ROLE_INDEXES[player_position % 5]
     tier = player_data.get('tier')
@@ -186,6 +199,7 @@ def spectate(player_data):
         match_data['pro_player_info'] = pro_player_info
 
     print(f"[SPECTATOR] - Spectating {get_title(match_data)}")
+    print(f"[SPECTATOR] - {description_builder.get_description(match_data)}")
     try:
         handle_game(match_data)
     except (GameCrashedException, GameNotBeginningFromStartException):
@@ -225,7 +239,7 @@ def spectate(player_data):
         'summonerSpells': match_data['summonerSpells'],
         'file_name': match_data['file_name'],
         'region': region,
-        'tier': tier.value,
+        'tier': tier,
         'lp': lp,
         'role': role,
         'events': match_data['events'],

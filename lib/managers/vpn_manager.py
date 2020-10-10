@@ -6,14 +6,26 @@ from lib.utils import get_public_ip_address
 
 def connect():
     ip = get_public_ip_address()
-    success = programs_manager.open_program(programs_manager.PROTON_VPN)
-    if not success:
-        return
     while True:
-        new_ip = get_public_ip_address()
-        if new_ip != ip:
-            break
-        time.sleep(1)
+        success = programs_manager.open_program(programs_manager.PROTON_VPN)
+        start = time.time()
+        if not success:
+            return
+        while True:
+            delta = time.time() - start
+            print(delta)
+            if delta > 20:
+                programs_manager.close_program(programs_manager.PROTON_VPN)
+                programs_manager.close_program(programs_manager.PROTON_VPN_SERVICE)
+                programs_manager.close_program(programs_manager.PROTON_UPDATE_SERVICE)
+                programs_manager.close_program(programs_manager.OPEN_VPN)
+                time.sleep(1)
+
+                break
+            new_ip = get_public_ip_address()
+            if new_ip != ip:
+                return
+            time.sleep(1)
 
 
 def disconnect():
@@ -26,6 +38,8 @@ def disconnect():
         return
     while True:
         new_ip = get_public_ip_address()
+        print(f'{new_ip=}')
+
         if new_ip != ip:
             break
         print(f'Ip address is still {ip}')

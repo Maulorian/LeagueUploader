@@ -34,7 +34,7 @@ class TestPlayerFinder(unittest.TestCase):
         game_data['players_data'] = players_data
         for participant in participants:
             summoner = participant.summoner
-            summoner_name = summoner.name
+            summoner_name = summoner.name.strip()
             kills = participant.stats.kills
             # ranked_league = summoner.league_entries[Queue.ranked_solo_fives]
             # tier = ranked_league.tier

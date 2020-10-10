@@ -55,7 +55,7 @@ def get_player_with_most_kills(finished_games_data):
             for participant in participants:
                 summoner = participant.summoner
                 try:
-                    summoner_name = summoner.name
+                    summoner_name = summoner.name.strip()
                 except AttributeError:
                     continue
                 stats = participant.stats
@@ -79,7 +79,7 @@ def get_player_with_most_kills(finished_games_data):
             players_kills.append(player_info)
 
     sorted_players = [player for player in
-                      sorted(players_kills, key=lambda player: player.get('dmg'), reverse=True)]
+                      sorted(players_kills, key=lambda player: (round(player['dmg'], -4), player['kills']), reverse=True)]
     for player in sorted_players:
         print(player.get('summoner_name'), player.get('dmg'), player.get('kills'))
     player_with_most_kills = sorted_players[0]

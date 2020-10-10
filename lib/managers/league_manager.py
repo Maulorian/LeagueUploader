@@ -10,8 +10,7 @@ from pywinauto.application import Application
 from lib.constants import GAME_CFG_PATH
 from lib.extractors.league_of_graphs import get_match_recording_settings
 from lib.managers import vpn_manager
-from lib.managers.programs_manager import running
-from lib.utils import cd
+from lib.managers.programs_manager import running, cd
 
 RECORDING_COMMAND = '{F10 down}{F10 up}'
 FOG_KEYBINDS = {
@@ -24,12 +23,6 @@ GAME = 'Game\\'
 BUGSPLAT_EXE = 'BsSndRpt.exe'
 KEYBINDS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0']
 LOCALE = 'en_GB'
-
-
-# HOSTS = {
-#     Region.korea.value: 'kr3.spectator.op.gg:80',
-#     Region.europe_west.value: 'f2.spectator.op.gg:80'
-# }
 
 
 def start_game(match_data):

@@ -18,7 +18,7 @@ cass.set_riot_api_key(os.getenv("RIOT_KEY"))
 class TestLeagueOfGraphs(unittest.TestCase):
 
     def test_get_match_data(self):
-        match_id = 4703064818
+        match_id = 4706529099
         region = 'KR'
         pretty_print(get_players_data(match_id, region))
 

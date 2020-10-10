@@ -61,7 +61,7 @@ def get_current_game_version():
     return version
 
 
-def add_rank_information_to_player(players_data, region):
+def add_rank_information_to_players(players_data, region):
     print(players_data)
     for name, player_data in players_data.items():
         summoner = cassiopeia.get_summoner(name=name, region=region)

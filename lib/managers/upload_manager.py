@@ -111,11 +111,12 @@ def handle_match(match_data):
             events = match_data['events']
             hl_creator = HighlightCreator(file_name, events)
             highlight_file_name = hl_creator.create_highlight()
-            old_path = path
             match_data['file_name'] = highlight_file_name
             upload_video(match_data)
 
-            os.remove(old_path)
+            highlight_path = VIDEOS_PATH + highlight_file_name
+            os.remove(path)
+            os.remove(highlight_path)
             logger.info(f"{path} Removed!")
         except VideoUploadException as e:
             logger.info(e)

@@ -164,15 +164,6 @@ def game_finished() -> bool:
 
 
 def game_time_when_started() -> bool:
-    # events = get_events()
-    # if events is None:
-    #     return False
-    #
-    # if len(events) == 0:
-    #     return False
-    # first_event = events[0]
-    # print(f'{first_event=}')
-    # return first_event.get('EventName') == GAME_START
     response_json = get_game_playback_data()
     if response_json.get('length') != 0:
         return response_json.get('time')
@@ -222,7 +213,7 @@ def get_recording_time(recording_times, event_game_time):
             return adjusted_recording_time
 
     last_recording_time = list(recording_times.keys())[-1]
-    last_delta = last_recording_time - recording_times[last_recording_time]
+    last_delta = recording_times[last_recording_time] - last_recording_time
 
     return event_game_time - last_delta
 

@@ -3,8 +3,6 @@ import subprocess
 
 import psutil
 
-from lib.utils import pretty_log, cd
-
 DISCORD_EXE = 'Discord.exe'
 CHROME_EXE = 'chrome.exe'
 OBS_EXE = 'obs64.exe'
@@ -21,6 +19,20 @@ DIRECTORIES = {
     PROTON_VPN: 'C:\Program Files (x86)\Proton Technologies\ProtonVPN'
 
 }
+
+
+class cd:
+    """Context manager for changing the current working directory"""
+
+    def __init__(self, newPath):
+        self.newPath = os.path.expanduser(newPath)
+
+    def __enter__(self):
+        self.savedPath = os.getcwd()
+        os.chdir(self.newPath)
+
+    def __exit__(self, etype, value, traceback):
+        os.chdir(self.savedPath)
 
 
 def running(processName):

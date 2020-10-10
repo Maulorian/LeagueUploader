@@ -9,7 +9,7 @@ def manual_replace(s, char, index):
 def get_title(match_info):
     player_champion = match_info.get('player_champion')
     role = match_info.get('role')
-    name = match_info.get('summoner_name')
+    name = match_info.get('summoner_name').title()
     kills = f'{match_info.get("kills")} kills'
 
     pro_player_info = match_info.get('pro_player_info')
@@ -19,8 +19,6 @@ def get_title(match_info):
             name += f'{pro_player_info["team"]} '
         name += pro_player_info['name']
 
-    first_letter = name[0].upper()
-    name = manual_replace(name, first_letter, 0)
     enemy_champion = match_info.get('enemy_champion')
     region = match_info.get('region')
     tier = match_info.get('tier')

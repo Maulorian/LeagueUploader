@@ -46,6 +46,7 @@ def get_match_recording_settings(match_id, region, random_player):
 
 
 def get_players_data(match_id, region):
+    print(f'getting player data for {match_id}')
     vpn_manager.connect()
 
     region_url = REGION_URLS[region]

@@ -35,6 +35,7 @@ BEFORE_EVENT_TIMES = {
 
 AFTER_EVENT_TIMES = {
     GAME_END: 0,
+    GAME_START: 15,
     KILL: 7.5,
     DEATH: 5,
     ASSIST: 7.5,
@@ -114,7 +115,7 @@ class HighlightCreator:
             before_event_time = BEFORE_EVENT_TIMES.get(event_type)
             after_event_time = AFTER_EVENT_TIMES.get(event_type)
             clip_data = {
-                'start_time': event.get('recording_time') - before_event_time,
+                'start_time': max(0, event.get('recording_time') - before_event_time),
                 'end_time': event.get('recording_time') + after_event_time
             }
             clips_data.append(clip_data)
