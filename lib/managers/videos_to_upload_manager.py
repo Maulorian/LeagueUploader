@@ -13,7 +13,7 @@ def write_to_file(recorded_games):
         json.dump(recorded_games, f, indent=2)
 
 
-def remove_video(match_id):
+def remove_to_upload(match_id):
     print(f'Deleting {match_id} from {constants.VIDEOS_TO_UPLOAD}')
     videos = get_videos_to_upload()
     videos = [game_data for game_data in videos if game_data.get('match_id') != match_id]

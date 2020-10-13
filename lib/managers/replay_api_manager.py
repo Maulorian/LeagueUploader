@@ -179,7 +179,7 @@ def get_player_items(player_data):
         item['total_gold'] = item_data.gold.total
 
     items.sort(key=lambda item: item.get('total_gold'), reverse=True)
-    items = [item for item in items if item.get('total_gold') >= 1100]
+    items = [item for item in items if item.get('total_gold') >= 900]
     pp = pprint.PrettyPrinter(indent=2)
     # pp.pprint(items)
     items = list(map(lambda item: item.get('itemID'), items))

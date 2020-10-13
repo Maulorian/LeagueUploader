@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 from lib.managers import thumbnail_manager
 from lib.managers.replay_api_manager import get_formated_timestamp
 from lib.managers.thumbnail_manager import get_summoner_spell
-from lib.managers.upload_manager import VIDEOS_PATH, upload_default_video, update_video, TO_UPLOAD_PATH
+from lib.managers.upload_manager import VIDEOS_PATH, upload_video_file, update_video, TO_UPLOAD_PATH
 from lib.spectator import get_video_path
 
 sys.path.append('C:\\Users\\Alex\\PycharmProjects\\LeagueUploader')

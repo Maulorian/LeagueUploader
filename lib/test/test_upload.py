@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 
 from lib.managers import thumbnail_manager
 from lib.managers.replay_api_manager import get_formated_timestamp
-from lib.managers.upload_manager import VIDEOS_PATH, upload_default_video, update_video, TO_UPLOAD_PATH, delete_video, \
+from lib.managers.upload_manager import VIDEOS_PATH, upload_video_file, update_video, TO_UPLOAD_PATH, delete_video, \
     upload_video, VideoUploadException
 from lib.spectator import get_video_path
 
@@ -55,7 +55,7 @@ class TestUpload(unittest.TestCase):
         path = VIDEOS_PATH + video_metadata['file_name']
         if not os.path.exists(path):
             raise FileNotFoundError
-        video_id = upload_default_video(video_metadata)
+        video_id = upload_video_file(video_metadata)
         update_video(video_id, video_metadata)
 
     def test_empty_queue(self):

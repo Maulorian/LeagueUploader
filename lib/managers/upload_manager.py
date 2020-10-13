@@ -12,13 +12,11 @@ from youtube_uploader_selenium import YouTubeUploader
 
 from lib.constants import PROJECT_PATH, VIDEOS_PATH
 from lib.managers.highlight_creator import HighlightCreator
-from lib.managers.videos_to_upload_manager import get_videos_to_upload, remove_video
+from lib.managers.videos_to_upload_manager import get_videos_to_upload, remove_to_upload
 
 LOG_NAME = "upload_logger"
 
 import lib.managers.thumbnail_manager as thumbnail_manager
-
-
 
 match_data_PATH = PROJECT_PATH + 'json/match_data.json'
 api_service_name = "youtube"
@@ -75,15 +73,25 @@ def add_video_to_queue(match_data):
 def upload_video(video_match_data):
     # path = VIDEOS_PATH + video_match_data['path']
     video_id = None
-    try:
-        video_id = upload_default_video(video_match_data)
-        update_video(video_id, video_match_data)
-        # os.remove(path)
-        # logger.info(f"{path} Removed!")
-    except Exception as e:
-        logger.exception(e)
-        delete_video(video_id)
-        raise VideoUploadException
+    retries = 3
+    while True:
+        try:
+            video_id = upload_video_file(video_match_data)
+            break
+        except Exception:
+            if retries == 0:
+                raise Exception
+            retries -= 1
+            continue
+    while True:
+        try:
+            update_video(video_id, video_match_data)
+            break
+        except Exception:
+            if retries == 0:
+                raise Exception
+            retries -= 1
+            continue
 
 
 def delete_video(video_id):
@@ -104,22 +112,22 @@ def handle_match(match_data):
     path = VIDEOS_PATH + file_name
     if not os.path.exists(path):
         logger.info(f"{match_data['title']} - {path} File not found")
-    else:
-        try:
-            logger.info(f"{match_data['title']}")
+        match_id = match_data.get('match_id')
+        remove_to_upload(match_id)
+        return
 
-            events = match_data['events']
-            hl_creator = HighlightCreator(file_name, events)
-            highlight_file_name = hl_creator.create_highlight()
-            match_data['file_name'] = highlight_file_name
-            upload_video(match_data)
+    logger.info(f"{match_data['title']}")
 
-            highlight_path = VIDEOS_PATH + highlight_file_name
-            os.remove(path)
-            os.remove(highlight_path)
-            logger.info(f"{path} Removed!")
-        except VideoUploadException as e:
-            logger.info(e)
+    events = match_data['events']
+    hl_creator = HighlightCreator(file_name, events)
+    highlight_file_name = hl_creator.create_highlight()
+    match_data['file_name'] = highlight_file_name
+    upload_video(match_data)
+
+    highlight_path = VIDEOS_PATH + highlight_file_name
+    os.remove(path)
+    os.remove(highlight_path)
+    logger.info(f"{path} Removed!")
 
 
 
@@ -133,12 +141,11 @@ def empty_queue():
             logger.info('uploads are empty')
             break
         handle_match(match_data)
-        match_id = match_data.get('match_id')
-        remove_video(match_id)
 
 
+def upload_video_file(match_data):
+    logger.info(f'Updating Video')
 
-def upload_default_video(match_data):
     title = match_data['title']
     description = match_data['description']
 
@@ -161,6 +168,7 @@ def upload_default_video(match_data):
 
 
 def update_video(video_id, match_data):
+    logger.info(f'Updating Video')
     logger.info(f'[UPLOAD MANAGER] - Updating Video {video_id}')
     player_champion = match_data['player_champion']
     skin_name = match_data['skin_name']

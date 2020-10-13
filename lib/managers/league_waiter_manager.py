@@ -33,14 +33,9 @@ def wait_finish(recording_times, game_time_when_started_recording, recording_sta
         print(f'{current_game_time=}')
         print(f'{current_time_passed_recording=}')
 
-        # delay = current_time_passed_recording - current_game_time
-        # delta_delay = delay - game_time_when_started_recording
-        # game_time_when_started_recording = delay
 
-        # total_delay += delta_delay
-        # recording_times[current_game_time] = total_delay
         recording_times[current_time_passed_recording] = current_game_time
-        pretty_print(recording_times)
+        # pretty_print(recording_times)
 
         if bugsplat():
             raise GameCrashedException

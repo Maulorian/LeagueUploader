@@ -16,7 +16,7 @@ GAME_START = 'game_start'
 DEATH = 'death'
 TURRET_KILL = 'turret_kill'
 
-MAX_EVENT_GAP = 30
+MAX_END_TO_START_TIME = 15
 MAX_NOT_SPED_UP_EVENT_GAP = 10
 SPEED_UP_FACTOR = 2
 
@@ -63,7 +63,7 @@ def add_transitions(clips_data):
         clip_data = clips_data[i]
         next_clip_data = clips_data[i + 1]
 
-        if gap_smaller_than(MAX_EVENT_GAP, clip_data, next_clip_data):
+        if gap_smaller_than(MAX_END_TO_START_TIME, clip_data, next_clip_data):
             accelerate = True
             if gap_smaller_than(MAX_NOT_SPED_UP_EVENT_GAP, clip_data, next_clip_data):
                 accelerate = False

@@ -1,12 +1,12 @@
-from dotenv import load_dotenv
-
-from lib.utils import pretty, pretty_print
-
-load_dotenv()
 import os
 import sys
 
+from dotenv import load_dotenv
+
+load_dotenv()
+
 sys.path.append('C:\\Users\\Alex\\PycharmProjects\\LeagueUploader')
+
 
 import traceback
 import cassiopeia
