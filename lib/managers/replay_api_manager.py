@@ -272,12 +272,6 @@ def get_formated_event(event, summoner_name, champions):
                 'type': 'death',
                 'killer': event.get("KillerName"),
             }
-    if event.get('EventName') == 'TurretKilled':
-        if summoner_name in event.get('Assisters'):
-            return {
-                    'type': 'turret_kill',
-            }
-
     if event.get('EventName') == 'InhibKilled':
         if summoner_name in event.get('Assisters'):
             return {

@@ -5,15 +5,16 @@ import subprocess
 import time
 import traceback
 
+import datapipelines
 import requests
-from cassiopeia import Side, cassiopeia, Queue
+from cassiopeia import Side, cassiopeia, Queue, get_summoner
 
 import lib.extractors.porofessor_extractor as porofessor_extractor
 import lib.managers.programs_manager as programs_manager
 from lib.builders import description_builder, tags_builder
 from lib.builders.title_builder import get_title
 from lib.constants import ROLE_INDEXES
-from lib.extractors.league_of_graphs import get_players_data
+from lib.extractors.league_of_graphs import get_players_data, ObserverKeyNotFoundException
 from lib.extractors.opgg_extractor import get_pro_players_info
 from lib.managers import replay_api_manager, league_manager, upload_manager, programs_manager, vpn_manager
 from lib.managers.league_manager import start_game, enable_settings, disable_settings
@@ -22,7 +23,7 @@ from lib.managers.league_waiter_manager import wait_for_game_launched, wait_fini
 from lib.managers.recorded_games_manager import delete_game
 from lib.managers.replay_api_manager import get_player_position, PortNotFoundException
 from lib.managers.riot_api_manager import get_current_game_version, add_rank_information_to_players
-from lib.managers.upload_manager import VIDEOS_PATH
+from lib.managers.upload_manager import VIDEOS_PATH, empty_queue
 from lib.utils import pretty_log, wait_seconds
 
 
@@ -122,17 +123,19 @@ def handle_postgame(match_data):
     match_id = match_data.get('match_id')
     delete_game(match_id)
 
-    total_space, used_space, free_space = shutil.disk_usage("D:")
-    total_space, used_space, free_space = (total_space // (2 ** 30)), (used_space // (2 ** 30)), (
-                free_space // (2 ** 30))
-    if free_space < 1:
-        raise DiskFullException(free_space)
+
+class NameChangedException(Exception):
+    pass
 
 
 def add_champion_to_players(players_data, match_id, region):
     players_dict_in_order = get_players_data(match_id, region)
     for player_name, champion in players_dict_in_order.items():
-        player_data = players_data[player_name]
+        try:
+            player_data = next(player_data for player_data in players_data.values() if player_data.get('summoner_name') == player_name)
+        except StopIteration:
+            raise NameChangedException
+
         tier = player_data.get('tier')
         lp = player_data.get('lp')
         kills = player_data.get('kills')
@@ -148,12 +151,17 @@ def add_champion_to_players(players_data, match_id, region):
     return players_dict_in_order
 
 def spectate(player_data):
-    summoner_name = player_data.get('summoner_name')
-    mongo_game = player_data.get('mongo_game')
     close_programs()
+
+    mongo_game = player_data.get('mongo_game')
 
     region = mongo_game.get('region')
     match_id = mongo_game.get('match_id')
+    summoner_id = player_data.get('summoner_id')
+
+    summoner = get_summoner(id=summoner_id, region=region)
+    summoner_name = summoner.name
+
     players_data = mongo_game.get('players_data')
     add_rank_information_to_players(players_data, region)
     players_data = add_champion_to_players(players_data, match_id, region)
@@ -202,6 +210,7 @@ def spectate(player_data):
     print(f"[SPECTATOR] - {description_builder.get_description(match_data)}")
     try:
         handle_game(match_data)
+
     except (GameCrashedException, GameNotBeginningFromStartException):
         traceback.print_exc()
 
@@ -211,11 +220,10 @@ def spectate(player_data):
         if 'file_name' in match_data:
             os.remove(VIDEOS_PATH + match_data['file_name'])
             print(f"{match_data['file_name']} Removed!")
-        match_id = match_data.get('match_id')
         delete_game(match_id)
         return
     except (subprocess.CalledProcessError, requests.exceptions.ConnectionError,
-            LaunchCrashedException, PortNotFoundException):
+            LaunchCrashedException, PortNotFoundException, requests.exceptions.ReadTimeout):
         traceback.print_exc()
         close_programs()
         wait_seconds(WAIT_TIME)

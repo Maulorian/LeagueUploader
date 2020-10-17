@@ -51,3 +51,25 @@ class TestRiotApi(unittest.TestCase):
             'AeQ+Valkyrie': {}
         }
         print(add_rank_information_to_players(players_data, region=region))
+    def test_get_players_id(self):
+
+        cass_match = get_match(4715553664, region='KR')
+
+        participants = cass_match.participants
+        players_data = {}
+        for participant in participants:
+            summoner = participant.summoner
+            try:
+                summoner_name = summoner.name.strip()
+                summoner_id = summoner.id
+                print(summoner_name)
+            except AttributeError:
+                continue
+            stats = participant.stats
+            kills = stats.kills
+            dmg = stats.total_damage_dealt_to_champions
+            players_data[summoner_id] = {
+                'kills': kills,
+                'dmg': dmg,
+            }
+        print(players_data)

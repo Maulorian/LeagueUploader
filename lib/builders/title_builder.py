@@ -14,10 +14,11 @@ def get_title(match_info):
 
     pro_player_info = match_info.get('pro_player_info')
     if pro_player_info:
-        name = ""
+        name = []
         if pro_player_info['team']:
-            name += f'{pro_player_info["team"]} '
-        name += pro_player_info['name']
+            name.append(pro_player_info["team"].title())
+        name.append(pro_player_info["name"].title())
+        name = ' '.join(name)
 
     enemy_champion = match_info.get('enemy_champion')
     region = match_info.get('region')

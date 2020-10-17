@@ -24,28 +24,13 @@ api_version = "v3"
 client_secrets_file = PROJECT_PATH + "json/client_secret.json"
 scopes = ["https://www.googleapis.com/auth/youtube.force-ssl"]
 
-PRIVACY_STATUS = "private"
+PRIVACY_STATUS = "public"
 TO_UPLOAD_PATH = PROJECT_PATH + 'json\\to_upload.json'
 TO_UPLOAD_BACKUP_PATH = PROJECT_PATH + 'json\\to_upload_backup.json'
 
-LOG_FILENAME = "queue_consummer.log"
 
-
-def setup_custom_logger(name):
-    formatter = logging.Formatter(fmt='%(asctime)s %(levelname)-8s %(message)s',
-                                  datefmt='%Y-%m-%d %H:%M:%S')
-    handler = logging.FileHandler(LOG_FILENAME, 'w', 'utf-8')
-    handler.setFormatter(formatter)
-    # screen_handler = logging.StreamHandler(stream=sys.stdout)
-    # screen_handler.setFormatter(formatter)
-    logger = logging.getLogger(name)
-    logger.setLevel(logging.DEBUG)
-    logger.addHandler(handler)
-    # logger.addHandler(screen_handler)
-    return logger
-
-
-logger = setup_custom_logger(LOG_NAME)
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 
 def add_video_to_queue(match_data):
@@ -128,11 +113,13 @@ def handle_match(match_data):
     os.remove(path)
     os.remove(highlight_path)
     logger.info(f"{path} Removed!")
-
+    match_id = match_data.get('match_id')
+    remove_to_upload(match_id)
 
 
 def empty_queue():
     logger.info('Emptying queue')
+
     while True:
         to_upload = get_videos_to_upload()
         try:

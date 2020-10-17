@@ -1,109 +1,63 @@
 from lib.managers.highlight_creator import HighlightCreator
 
-events =  [
-      {
+events =[
+
+    {
         "type": "kill",
-        "victim": "Akali",
-        "time": 238.76060724258423
-      },
-      {
-        "type": "kill",
-        "victim": "Akali",
-        "time": 345.4773919582367
-      },
-      {
-        "type": "death",
-        "killer": "reekerzz",
-        "time": 347.1614739894867
-      },
-      {
-        "type": "kill",
-        "victim": "Akali",
-        "time": 449.15594482421875
-      },
-      {
-        "type": "death",
-        "killer": "D\u00e9adly",
-        "time": 512.6180024147034
-      },
-      {
-        "type": "death",
-        "killer": "WhiteKnight108",
-        "time": 708.6006181240082
-      },
-      {
-        "type": "kill",
-        "victim": "Senna",
-        "time": 756.190395116806
-      },
-      {
-        "type": "kill",
-        "victim": "Leona",
-        "time": 759.0617225170135
-      },
-      {
-        "type": "kill",
-        "victim": "Ryze",
-        "time": 770.6645932197571
-      },
-      {
-        "type": "kill",
-        "victim": "Akali",
-        "time": 789.4919936656952
-      },
-      {
-        "type": "death",
-        "killer": "D\u00e9adly",
-        "time": 803.2751166820526
-      },
-      {
+        "victim": "Kalista",
+        "recording_time": 853.4270839691162,
+        "event_game_time": 856.338134765625
+    },
+    {
         "type": "assist",
-        "victim": "Skarner",
-        "time": 803.3085639476776
-      },
-      {
-        "type": "turret_kill",
-        "time": 807.0815603733063
-      },
-      {
-        "type": "death",
-        "killer": "D\u00e9adly",
-        "time": 907.7870388031006
-      },
-      {
+        "victim": "Lee Sin",
+        "recording_time": 892.0445156097412,
+        "event_game_time": 894.95556640625
+    },
+    {
         "type": "assist",
-        "victim": "Ryze",
-        "time": 1004.979020357132
-      },
-      {
-        "type": "kill",
-        "victim": "Skarner",
-        "time": 1023.7059869766235
-      },
-      {
-        "type": "turret_kill",
-        "time": 1041.7280659675598
-      },
-      {
-        "type": "death",
-        "killer": "WhiteKnight108",
-        "time": 1077.0331292152405
-      },
-      {
+        "victim": "Thresh",
+        "recording_time": 954.5758876800537,
+        "event_game_time": 957.4869384765625
+    },
+    {
         "type": "assist",
-        "victim": "Skarner",
-        "time": 1234.506926059723
-      },
-      {
+        "victim": "Akali",
+        "recording_time": 954.88112449646,
+        "event_game_time": 957.7921752929688
+    },
+    {
         "type": "kill",
-        "victim": "Leona",
-        "time": 1246.388867855072
-      },
-      {
-        "type": "game_end",
-        "time": 1380.7230682373047
-      }
-    ]
+        "victim": "Kalista",
+        "recording_time": 957.8272304534912,
+        "event_game_time": 960.73828125
+    },
+    {
+        "type": "assist",
+        "victim": "Lee Sin",
+        "recording_time": 961.432149887085,
+        "event_game_time": 964.3432006835938
+    },
+    {
+        "type": "kill",
+        "victim": "Orianna",
+        "recording_time": 969.2978115081787,
+        "event_game_time": 972.2088623046875
+    },
+    {
+        "type": "assist",
+        "victim": "Thresh",
+        "recording_time": 1046.4151210784912,
+        "event_game_time": 1049.326171875
+    },
+    {
+        "type": "kill",
+        "victim": "Kalista",
+        "recording_time": 1058.8471279144287,
+        "event_game_time": 1061.7581787109375
+    },
+
+]
 
 import os
 import unittest
@@ -119,6 +73,6 @@ cass.set_riot_api_key(os.getenv("RIOT_KEY"))
 
 class TestHLCreator(unittest.TestCase):
     def test_create_highlight(self):
-        file_name = '04_October_2020____23_13_57____2560x1440.mkv'
+        file_name = 'test_video.mkv'
         hl_creator = HighlightCreator(file_name, events)
         hl_creator.create_highlight()

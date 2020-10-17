@@ -37,7 +37,7 @@ AFTER_EVENT_TIMES = {
     GAME_END: 0,
     GAME_START: 15,
     KILL: 7.5,
-    DEATH: 5,
+    DEATH: 1,
     ASSIST: 7.5,
     INHIBITOR_KILL: 2,
     BARON_KILL: 5,
@@ -85,7 +85,7 @@ class HighlightCreator:
         self.events = events
 
     def create_highlight(self):
-        pretty_print(self.events)
+        # pretty_print(self.events)
 
         clips_data = self.get_clips_data()
         pretty_print(clips_data)
@@ -159,6 +159,14 @@ def gap_smaller_than(gap, clip_data, next_clip_data):
     return abs(clip_data.get('end_time') - next_clip_data.get('start_time')) <= gap
 
 
+def next_clip_inside_clip(clip_data, next_clip_data):
+    clip_data_start_time = clip_data['start_time']
+    clip_data_end_time = clip_data['end_time']
+    next_clip_data_start_time = next_clip_data['start_time']
+    next_clip_data_end_time = next_clip_data['end_time']
+    return clip_data_end_time >= next_clip_data_end_time and clip_data_start_time <= next_clip_data_start_time
+
+
 def gather_clips_data(clips_data):
     gathered_clips_data = []
     while len(clips_data) > 0:
@@ -168,11 +176,19 @@ def gather_clips_data(clips_data):
                 next_clip_data = clips_data[0]
             except IndexError:
                 break
+            if next_clip_inside_clip(clip_data, next_clip_data):
+                print(f'{next_clip_data} inside {clip_data}')
+                clips_data.pop(0)
+                continue
+            if end_is_further_than_start(clip_data['end_time'], next_clip_data.get('start_time')):
+                print('end is further than start')
 
-            if clip_data['end_time'] >= next_clip_data.get('start_time'):
                 clip_data['end_time'] = next_clip_data.get('end_time')
                 clips_data.pop(0)
             else:
                 break
         gathered_clips_data.append(clip_data)
     return gathered_clips_data
+
+def end_is_further_than_start(clip_data_end_time, next_clip_data_start_time):
+    return clip_data_end_time >= next_clip_data_start_time

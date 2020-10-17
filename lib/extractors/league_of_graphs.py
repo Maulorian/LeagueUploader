@@ -16,9 +16,24 @@ REGION_URLS = {
     'EUW': 'euw/'
 }
 
+REPLAYS = 'replays/all'
+
 
 class ObserverKeyNotFoundException(Exception):
     pass
+
+
+class ReplaysDownException(Exception):
+    pass
+
+
+def replays_are_down():
+    url = BASE_URL + REPLAYS
+    r = requests.get(url, headers=HEADERS_WITH_USER_AGENT, timeout=60)
+    html = r.text
+    soup = BeautifulSoup(html, "html.parser")
+    replays = soup.find_all('div', {'class': 'box matchBox'})
+    return len(replays) == 0
 
 
 def extract_match_recording_settings(html, match_id):
@@ -27,6 +42,8 @@ def extract_match_recording_settings(html, match_id):
     buttons = soup.find_all('button', {'data-spectate-gameid': True})
     button = next((button for button in buttons if button['data-spectate-gameid'] == str(match_id)), None)
     if button is None:
+        if replays_are_down():
+            raise ReplaysDownException
         raise ObserverKeyNotFoundException
     observer_key = button['data-spectate-encryptionkey']
     host = button['data-spectate-endpoint']
@@ -37,8 +54,6 @@ def extract_match_recording_settings(html, match_id):
 def get_match_recording_settings(match_id, region, random_player):
     region_url = REGION_URLS[region]
     url = BASE_URL + SUMMONER + region_url + random_player
-    print(url)
-
     r = requests.get(url, headers=HEADERS_WITH_USER_AGENT, timeout=60)
     html = r.text
     # print(html)
@@ -64,7 +79,6 @@ def get_players_data(match_id, region):
 
 
 def extract_players_data(html):
-
     players_data = []
     players_data_ordered = [{} for i in range(10)]
     soup = BeautifulSoup(html, "html.parser")
@@ -85,4 +99,4 @@ def extract_players_data(html):
         players_data_ordered[j + 5] = players_data[i + 1]
         j += 1
 
-    return {player_data.get('name'): player_data.get('champion_name')for player_data in players_data_ordered}
+    return {player_data.get('name'): player_data.get('champion_name') for player_data in players_data_ordered}

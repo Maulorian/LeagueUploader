@@ -63,8 +63,8 @@ def get_current_game_version():
 
 def add_rank_information_to_players(players_data, region):
     print(players_data)
-    for name, player_data in players_data.items():
-        summoner = cassiopeia.get_summoner(name=name, region=region)
+    for player_id, player_data in players_data.items():
+        summoner = cassiopeia.get_summoner(id=player_id, region=region)
         try:
             ranked_league = summoner.league_entries.fives
         except ValueError:
@@ -72,5 +72,6 @@ def add_rank_information_to_players(players_data, region):
         tier = ranked_league.tier
         lp = ranked_league.league_points
         player_data['tier'] = tier.value.title()
+        player_data['summoner_name'] = summoner.name
         player_data['lp'] = lp
     return players_data

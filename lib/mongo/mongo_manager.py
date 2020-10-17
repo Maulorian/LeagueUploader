@@ -9,7 +9,7 @@ INDEX = 'match_id'
 
 
 def get_recording_enabler_database():
-
+    vpn_manager.disconnect()
     client = pymongo.MongoClient(CONNECTION_STRING)
     db = client[RECORDING_ENABLER_DATABASE]
     return db

@@ -22,6 +22,20 @@ def pretty_log(function):
     return wrapper
 
 
+def log_name(function):
+    def to_camel_case(snake_str):
+        components = snake_str.split('_')
+        # We capitalize the first letter of each component except the first one
+        # with the 'title' method and join them together.
+        return ' '.join(x.title() for x in components)
+    def wrapper(*args):
+        result = function(*args)
+        file_name = function.__module__.split('.')[-1]
+        print(f'[{file_name.upper()}] - {to_camel_case(function.__name__)}')
+        return result
+
+    return wrapper
+
 def pretty_print(string):
     pp = pprint.PrettyPrinter(indent=2)
     pp.pprint(string)
@@ -30,9 +44,6 @@ def pretty_print(string):
 def wait_seconds(WAIT_TIME):
     # print(f"[SPECTATOR] - Waiting {WAIT_TIME}")
     time.sleep(WAIT_TIME)
-
-
-
 
 
 def pretty(d, indent=0):

@@ -6,7 +6,7 @@ from cassiopeia import Region
 from dotenv import load_dotenv
 
 from lib.extractors import porofessor_extractor
-from lib.extractors.league_of_graphs import get_players_data
+from lib.extractors.league_of_graphs import get_players_data, replays_are_down
 from lib.utils import pretty_print
 
 load_dotenv()
@@ -26,3 +26,6 @@ class TestLeagueOfGraphs(unittest.TestCase):
         name = '한국산호랑이'
         region = 'KR'
         porofessor_extractor.request_recording(name, region)
+
+    def test_replays_are_down(self):
+        print(replays_are_down())
