@@ -10,15 +10,14 @@ from oauth2client.client import Storage
 from oauth2client.file import Storage  # Added
 from youtube_uploader_selenium import YouTubeUploader
 
-from lib.constants import PROJECT_PATH, VIDEOS_PATH
-from lib.managers.highlight_creator import HighlightCreator
-from lib.managers.videos_to_upload_manager import get_videos_to_upload, remove_to_upload
+from lib.constants import PROJECT_PATH, VIDEOS_PATH, HIGHLIGHTS_PATH
+from lib.managers.videos_to_upload_manager import get_match_data_to_upload, remove_match_data
 
 LOG_NAME = "upload_logger"
 
 import lib.managers.thumbnail_manager as thumbnail_manager
 
-match_data_PATH = PROJECT_PATH + 'json/match_data.json'
+MATCH_DATA = PROJECT_PATH + 'json/match_data.json'
 api_service_name = "youtube"
 api_version = "v3"
 client_secrets_file = PROJECT_PATH + "json/client_secret.json"
@@ -93,40 +92,26 @@ class VideoUploadException(Exception):
 
 
 def handle_match(match_data):
-    file_name = match_data['file_name']
-    path = VIDEOS_PATH + file_name
-    if not os.path.exists(path):
-        logger.info(f"{match_data['title']} - {path} File not found")
-        match_id = match_data.get('match_id')
-        remove_to_upload(match_id)
-        return
+    title = match_data['title']
+    match_id = match_data.get('match_id')
 
-    logger.info(f"{match_data['title']}")
+    logger.info(f"{title}")
 
-    events = match_data['events']
-    hl_creator = HighlightCreator(file_name, events)
-    highlight_file_name = hl_creator.create_highlight()
-    match_data['file_name'] = highlight_file_name
+    highlight_file_name = match_data['highlight_file_name']
+    highlight_path = HIGHLIGHTS_PATH + highlight_file_name
+
     upload_video(match_data)
 
-    highlight_path = VIDEOS_PATH + highlight_file_name
-    os.remove(path)
     os.remove(highlight_path)
-    logger.info(f"{path} Removed!")
-    match_id = match_data.get('match_id')
-    remove_to_upload(match_id)
+    remove_match_data(match_id)
 
 
 def empty_queue():
     logger.info('Emptying queue')
-
-    while True:
-        to_upload = get_videos_to_upload()
-        try:
-            match_data = to_upload[0]
-        except IndexError:
-            logger.info('uploads are empty')
-            break
+    to_upload = get_match_data_to_upload()
+    for match_data in to_upload:
+        if 'highlight_file_name' not in match_data:
+            continue
         handle_match(match_data)
 
 
@@ -136,7 +121,7 @@ def upload_video_file(match_data):
     title = match_data['title']
     description = match_data['description']
 
-    path = VIDEOS_PATH + match_data['file_name']
+    path = HIGHLIGHTS_PATH + match_data['highlight_file_name']
 
     logger.info(f'[UPLOAD MANAGER] - Uploading {title}')
 
@@ -144,10 +129,10 @@ def upload_video_file(match_data):
         'title': title,
         'description': description
     }
-    with open(match_data_PATH, 'w') as file:
+    with open(MATCH_DATA, 'w') as file:
         file.write(json.dumps(match_data))
 
-    uploader = YouTubeUploader(path, match_data_PATH)
+    uploader = YouTubeUploader(path, MATCH_DATA)
     was_video_uploaded, video_id = uploader.upload()
     logger.info('[UPLOAD MANAGER] - Video Uploaded')
 

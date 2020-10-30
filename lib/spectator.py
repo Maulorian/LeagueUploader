@@ -55,6 +55,7 @@ def wait_summoners_spawned():
 
 
 def handle_game(match_data):
+    print('Handling game')
     programs_manager.open_program(programs_manager.OBS_EXE)
 
     enable_settings()
@@ -210,7 +211,12 @@ def spectate(player_data):
     print(f"[SPECTATOR] - {description_builder.get_description(match_data)}")
     try:
         handle_game(match_data)
-
+    except ObserverKeyNotFoundException as e:
+        print(f'Observer key not found in {e.url}')
+        traceback.print_exc()
+        close_programs()
+        delete_game(match_id)
+        return
     except (GameCrashedException, GameNotBeginningFromStartException):
         traceback.print_exc()
 
@@ -227,6 +233,7 @@ def spectate(player_data):
         traceback.print_exc()
         close_programs()
         wait_seconds(WAIT_TIME)
+        delete_game(match_id)
 
         if 'file_name' in match_data:
             os.remove(VIDEOS_PATH + match_data['file_name'])

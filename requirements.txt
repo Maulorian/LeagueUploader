@@ -50,3 +50,6 @@ Unidecode==1.1.1
 uritemplate==3.0.1
 urllib3==1.25.10
 youtube-uploader-selenium==0.1.0
+
+pywinauto~=0.6.8
+psutil~=5.7.2

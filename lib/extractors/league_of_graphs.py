@@ -20,7 +20,8 @@ REPLAYS = 'replays/all'
 
 
 class ObserverKeyNotFoundException(Exception):
-    pass
+    def __init__(self, url):
+        self.url = url
 
 
 class ReplaysDownException(Exception):
@@ -36,6 +37,10 @@ def replays_are_down():
     return len(replays) == 0
 
 
+class ReplayButtonNotFoundException(Exception):
+    pass
+
+
 def extract_match_recording_settings(html, match_id):
     soup = BeautifulSoup(html, "html.parser")
     # print(soup.find_all('a'))
@@ -44,7 +49,7 @@ def extract_match_recording_settings(html, match_id):
     if button is None:
         if replays_are_down():
             raise ReplaysDownException
-        raise ObserverKeyNotFoundException
+        raise ReplayButtonNotFoundException
     observer_key = button['data-spectate-encryptionkey']
     host = button['data-spectate-endpoint']
     platform = button['data-spectate-platform']
@@ -57,7 +62,11 @@ def get_match_recording_settings(match_id, region, random_player):
     r = requests.get(url, headers=HEADERS_WITH_USER_AGENT, timeout=60)
     html = r.text
     # print(html)
-    return extract_match_recording_settings(html, match_id)
+
+    try:
+        return extract_match_recording_settings(html, match_id)
+    except ReplayButtonNotFoundException:
+        raise ObserverKeyNotFoundException(url)
 
 
 def get_players_data(match_id, region):

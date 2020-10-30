@@ -1,46 +1,59 @@
 import time
 
 from lib.managers import programs_manager
+from lib.managers.programs_manager import running
 from lib.utils import get_public_ip_address
 
 
 def connect():
+    if running(programs_manager.PROTON_VPN):
+        return
+
+    print('Connecting to vpn')
     ip = get_public_ip_address()
     while True:
-        success = programs_manager.open_program(programs_manager.PROTON_VPN)
+        programs_manager.open_program(programs_manager.PROTON_VPN)
         start = time.time()
-        if not success:
-            return
+
         while True:
             delta = time.time() - start
-            print(delta)
-            if delta > 20:
+            if delta > 15:
                 programs_manager.close_program(programs_manager.PROTON_VPN)
                 programs_manager.close_program(programs_manager.PROTON_VPN_SERVICE)
                 programs_manager.close_program(programs_manager.PROTON_UPDATE_SERVICE)
                 programs_manager.close_program(programs_manager.OPEN_VPN)
-                time.sleep(1)
-
                 break
             new_ip = get_public_ip_address()
             if new_ip != ip:
+                print('Connected')
                 return
-            time.sleep(1)
+
+
+class VPNClosingException(Exception):
+    pass
 
 
 def disconnect():
+    if not running(programs_manager.PROTON_VPN) and not running(programs_manager.OPEN_VPN):
+        return
+    print('Disconnecting from vpn')
+
     ip = get_public_ip_address()
-    was_running = programs_manager.close_program(programs_manager.PROTON_VPN)
+
+    programs_manager.close_program(programs_manager.PROTON_VPN)
     programs_manager.close_program(programs_manager.PROTON_VPN_SERVICE)
     programs_manager.close_program(programs_manager.PROTON_UPDATE_SERVICE)
     programs_manager.close_program(programs_manager.OPEN_VPN)
-    if not was_running:
-        return
+    time.sleep(1)
+    if running(programs_manager.PROTON_VPN) or running(programs_manager.OPEN_VPN):
+        raise VPNClosingException
+
     while True:
         new_ip = get_public_ip_address()
         print(f'{new_ip=}')
 
         if new_ip != ip:
+            print('Disconnected')
+
             break
         print(f'Ip address is still {ip}')
-        time.sleep(1)

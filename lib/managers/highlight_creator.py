@@ -2,7 +2,8 @@ import multiprocessing
 
 from moviepy.editor import *
 
-from lib.constants import VIDEOS_PATH
+from lib.constants import VIDEOS_PATH, HIGHLIGHTS_PATH
+from lib.managers.videos_to_upload_manager import get_match_data_to_upload, remove_match_data, add_match_data
 from lib.utils import pretty_print
 
 START_GAME = 20
@@ -20,10 +21,10 @@ MAX_END_TO_START_TIME = 15
 MAX_NOT_SPED_UP_EVENT_GAP = 10
 SPEED_UP_FACTOR = 2
 
-SLOW_DOWN_FACTOR = 1/2
+SLOW_DOWN_FACTOR = 1 / 2
 
 BEFORE_EVENT_TIMES = {
-    GAME_END: 5,
+    GAME_END: 2.5,
     GAME_START: 0,
     KILL: 20,
     DEATH: 10,
@@ -35,7 +36,7 @@ BEFORE_EVENT_TIMES = {
 
 AFTER_EVENT_TIMES = {
     GAME_END: 0,
-    GAME_START: 15,
+    GAME_START: 7.5,
     KILL: 7.5,
     DEATH: 1,
     ASSIST: 7.5,
@@ -78,11 +79,23 @@ def add_transitions(clips_data):
     return final_clips_data
 
 
+def get_file_name_without_extension(file_name):
+    return os.path.splitext(file_name)[0]
+
+
+def get_highlight_file_name(file_name):
+    return f"{get_file_name_without_extension(file_name)}_highlight.mp4"
+
+
 class HighlightCreator:
     def __init__(self, file_name, events):
-        self.file_name = os.path.splitext(file_name)[0]
+        self.file_name = get_file_name_without_extension(file_name)
+        self.highlight_file_name = get_highlight_file_name(file_name)
         self.video = VideoFileClip(VIDEOS_PATH + file_name)
         self.events = events
+
+    def close_video(self):
+        self.video.close()
 
     def create_highlight(self):
         # pretty_print(self.events)
@@ -101,10 +114,8 @@ class HighlightCreator:
         highlight = concatenate_videoclips(clips)
         # clips = [clip.crossfadein(1) for i, clip in enumerate(clips) if i > 0]
         # highlight = concatenate_videoclips(clips, padding=-1, method="compose")
-        highlight_file_name = f"{self.file_name}_highlight.mp4"
-        highlight.write_videofile(VIDEOS_PATH + highlight_file_name, threads=multiprocessing.cpu_count())
-        self.video.close()
-        return highlight_file_name
+        highlight.write_videofile(HIGHLIGHTS_PATH + self.highlight_file_name, threads=multiprocessing.cpu_count())
+        self.close_video()
 
     def get_clips_data(self):
 
@@ -116,7 +127,7 @@ class HighlightCreator:
             after_event_time = AFTER_EVENT_TIMES.get(event_type)
             clip_data = {
                 'start_time': max(0, event.get('recording_time') - before_event_time),
-                'end_time': event.get('recording_time') + after_event_time
+                'end_time': min(event.get('recording_time') + after_event_time, self.video.duration)
             }
             clips_data.append(clip_data)
         clips_data.sort(key=lambda clip: clip.get('start_time'))
@@ -190,5 +201,36 @@ def gather_clips_data(clips_data):
         gathered_clips_data.append(clip_data)
     return gathered_clips_data
 
+
 def end_is_further_than_start(clip_data_end_time, next_clip_data_start_time):
     return clip_data_end_time >= next_clip_data_start_time
+
+
+def create_highlights():
+    print('Creating highlights')
+    to_upload = get_match_data_to_upload()
+    for match_data in to_upload:
+        file_name = match_data['file_name']
+        events = match_data['events']
+        match_id = match_data['match_id']
+        path = VIDEOS_PATH + file_name
+        highlight_file_name = get_highlight_file_name(file_name)
+
+
+        print(f'Creating {highlight_file_name}')
+
+        if 'highlight_file_name' in match_data:
+            print(f'{match_id} already has an highlight')
+            continue
+
+        if not os.path.exists(path):
+            remove_match_data(match_id)
+            continue
+        hl_creator = HighlightCreator(file_name, events)
+        hl_creator.create_highlight()
+
+        os.remove(path)
+
+        remove_match_data(match_id)
+        match_data['highlight_file_name'] = highlight_file_name
+        add_match_data(match_data)

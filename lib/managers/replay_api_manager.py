@@ -272,11 +272,11 @@ def get_formated_event(event, summoner_name, champions):
                 'type': 'death',
                 'killer': event.get("KillerName"),
             }
-    if event.get('EventName') == 'InhibKilled':
-        if summoner_name in event.get('Assisters'):
-            return {
-                    'type': 'inhibitor_kill',
-            }
+    # if event.get('EventName') == 'InhibKilled':
+    #     if summoner_name in event.get('Assisters'):
+    #         return {
+    #                 'type': 'inhibitor_kill',
+    #         }
     if event.get('EventName') == 'BaronKill':
         if summoner_name in event.get('Assisters') or summoner_name in event.get('Assisters'):
             return {

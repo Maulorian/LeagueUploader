@@ -1,6 +1,6 @@
-from lib.managers.highlight_creator import HighlightCreator
+from lib.managers.highlight_creator import HighlightCreator, create_highlights
 
-events =[
+events = [
 
     {
         "type": "kill",
@@ -76,3 +76,6 @@ class TestHLCreator(unittest.TestCase):
         file_name = 'test_video.mkv'
         hl_creator = HighlightCreator(file_name, events)
         hl_creator.create_highlight()
+
+    def test_create_highlights(self):
+        create_highlights()

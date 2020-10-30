@@ -9,6 +9,7 @@ import cassiopeia
 from dotenv import load_dotenv
 
 from lib.extractors.league_of_graphs import ObserverKeyNotFoundException, ReplaysDownException
+from lib.managers.highlight_creator import create_highlights
 from lib.managers.upload_manager import empty_queue
 
 load_dotenv()
@@ -34,8 +35,9 @@ def check_enough_memory():
     total_space, used_space, free_space = (total_space // (2 ** 30)), (used_space // (2 ** 30)), (
             free_space // (2 ** 30))
     if free_space < 15:
-        empty_queue()
-
+        create_highlights()
+    else:
+        print(f'{free_space}GB is enough memory')
 
 def main():
     while True:
@@ -55,18 +57,17 @@ def main():
                 time.sleep(60 * 60)
                 break
             except NameChangedException:
+                print('Name changed, deleting game.')
                 match_id = player_data.get('mongo_game').get('match_id')
                 delete_game(match_id)
                 continue
-            except ObserverKeyNotFoundException:
-                break
+
         except DiskFullException as e:
             print(f'Disk is full ({e.disk_space})')
             break
         except Exception as e:
-
             print(traceback.format_exc())
-            break
+            time.sleep(60)
 
 
 if __name__ == '__main__':

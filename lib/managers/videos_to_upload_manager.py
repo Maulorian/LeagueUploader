@@ -7,7 +7,8 @@ from lib import constants
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-def get_videos_to_upload():
+
+def get_match_data_to_upload():
     with open(constants.VIDEOS_TO_UPLOAD, 'r') as f:
         return json.load(f)
 
@@ -17,19 +18,17 @@ def write_to_file(recorded_games):
         json.dump(recorded_games, f, indent=2)
 
 
-def remove_to_upload(match_id):
+def remove_match_data(match_id):
     logger.info(f'Deleting {match_id} from {constants.VIDEOS_TO_UPLOAD}')
-    videos = get_videos_to_upload()
+    videos = get_match_data_to_upload()
     videos = [game_data for game_data in videos if game_data.get('match_id') != match_id]
     write_to_file(videos)
 
 
-def add_video(game):
-    videos = get_videos_to_upload()
+def add_match_data(match_data):
+    videos = get_match_data_to_upload()
     try:
-        next(g for g in videos if g.get('match_id') == game.get('match_id'))
+        next(g for g in videos if g.get('match_id') == match_data.get('match_id'))
     except StopIteration:
-        videos.append(game)
+        videos.append(match_data)
         write_to_file(videos)
-        return
-    logger.info('Match already recording on opgg.')

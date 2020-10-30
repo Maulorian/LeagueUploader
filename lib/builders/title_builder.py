@@ -1,4 +1,4 @@
-TITLE_CANVAS = '{player_champion} {role} vs {enemy_champion} - {kills} - {name} - {region} {tier} ({lp} LP) ' \
+TITLE_CANVAS = '{player_champion} {role} vs {enemy_champion} - {kills} - {name} {region} {tier} ({lp} LP) ' \
                'Patch {version}'
 
 
@@ -16,7 +16,7 @@ def get_title(match_info):
     if pro_player_info:
         name = []
         if pro_player_info['team']:
-            name.append(pro_player_info["team"].title())
+            name.append(pro_player_info["team"])
         name.append(pro_player_info["name"].title())
         name = ' '.join(name)
 

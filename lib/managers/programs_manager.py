@@ -47,18 +47,17 @@ def running(processName):
 
 def close_program(exe):
     if not running(exe):
-        return False
+        return
     close_command = f'TASKKILL /F /IM \"{exe}\"'
     subprocess.Popen(close_command, shell=True)
-    return True
+
 
 
 def open_program(exe):
     if running(exe):
-        return False
+        return
     directory = DIRECTORIES[exe]
     with cd(directory):
         subprocess.Popen([exe], stdout=open(os.devnull, 'w'), stderr=subprocess.STDOUT)
         print(f'Successfully opened {exe}')
 
-    return True
