@@ -1,7 +1,7 @@
 # League Uploader
 This tool automates the **search**, the **recording** and the **uploading** of *League of Legends* Challenger Games from KR and EU.
 
-It does the following things:
+The steps of the process are the following:
 
 1. **Retrieves** not yet recorded Challenger Games in the database (MongoDB here) put by the following worker: https://github.com/Maulorian/RecordingsEnabler/tree/master.
 2. **Process** the matches with the Riot Games API and chooses the most relevant player to watch by looking at kills, damages done, etc.
