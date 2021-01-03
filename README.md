@@ -7,4 +7,5 @@ It does the following things:
 2. **Process** the matches with the Riot Games API and chooses the most relevant player to watch by looking at kills, damages done, etc.
 3. **Opens** *League of Legends* and OBS Studio (https://obsproject.com/), selects and records the game.
 4. **Creates** a *5-10 minutes* highlights video from a *30-40 minutes game* with the help of events being saved with their timestamps such as kills, deaths, epic monster kills, etc.
-5. **Uploads** on the **Challenger Highlights** *Youtube* Channel: https://www.youtube.com/channel/UCz2zp337iZ9xkpLDACxpRHA
+5. **Draws** a thumbnail for the video based on metadata such as items, kills, runes, etc to be uploaded with the video.
+6. **Uploads** on the **Challenger Highlights** *Youtube* Channel: https://www.youtube.com/channel/UCz2zp337iZ9xkpLDACxpRHA
