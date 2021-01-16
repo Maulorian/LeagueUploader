@@ -1,4 +1,4 @@
-# League Uploader
+# League of Legends Match Highlights Uploader
 This tool automates the **search**, the **recording** and the **uploading** of *League of Legends* Challenger Games from KR and EU.
 
 The steps of the process are the following:
